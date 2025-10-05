@@ -17,3 +17,9 @@ export async function createCards(filename: string) {
     if (!res.ok) throw new Error("Failed to create cards");
     return res.json();
 }
+
+export async function deleteCards(filename: string) {
+    const res = await fetch(`/api/delete_cards/${encodeURIComponent(filename)}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Failed to delete cards");
+    return res.json();
+}
