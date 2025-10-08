@@ -36,10 +36,10 @@ input[type="file"] { margin-right: 8px; }
 .button.danger {
     background: white;
     color: mediumvioletred;
-    transition: 0.2s;
+    border: 1px solid #ddd;
 }
 
-.button.danger.deleted {
-    background: mediumvioletred;
+.button.danger.is-deleted {
+    background: #c62828; /* красный */
     color: white;
 }
