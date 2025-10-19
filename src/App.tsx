@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Card, Deck } from './types';
 import { api } from './api';
+import { HomePage } from './pages/HomePage';
+import { ProfilePage } from './pages/ProfilePage';
+import { useHistoryContext } from './Context/HistoryContext';
 import './App.css';
 
-const App: React.FC = () => {
+const MainApp: React.FC = () => {
     const [decks, setDecks] = useState<Deck[]>([]);
     const [cards, setCards] = useState<Card[]>([]);
     const [selectedDeck, setSelectedDeck] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const { addHistory } = useHistoryContext();
 
     // Загрузка списка деков
     const loadDecks = async () => {
@@ -35,7 +40,8 @@ const App: React.FC = () => {
             setMessage(result.message);
 
             if (result.success) {
-                await loadDecks(); // Обновляем список деков
+                addHistory({ action: "Загружен файл", deck: file.name });
+                await loadDecks();
             }
         } catch (error) {
             setMessage('Ошибка загрузки файла');
@@ -55,6 +61,7 @@ const App: React.FC = () => {
                 setCards(result.cards);
                 setSelectedDeck(deckName);
                 setMessage(`Создано ${result.total} карточек`);
+                addHistory({ action: "Созданы карточки", deck: deckName });
             }
         } catch (error) {
             setMessage('Ошибка создания карточек');
@@ -63,9 +70,8 @@ const App: React.FC = () => {
         }
     };
 
-    // ✅ ФУНКЦИЯ УДАЛЕНИЯ ФАЙЛА
+    // Функция удаления файла
     const handleDeleteDeck = async (deckName: string) => {
-        // Подтверждение удаления
         if (!window.confirm(`Вы уверены, что хотите удалить файл "${deckName}" и все связанные карточки?`)) {
             return;
         }
@@ -78,10 +84,9 @@ const App: React.FC = () => {
             setMessage(result.message);
 
             if (result.success) {
-                // Обновляем список деков
+                addHistory({ action: "Удален файл", deck: deckName });
                 await loadDecks();
 
-                // Если удаляемый файл был выбран, очищаем карточки
                 if (selectedDeck === deckName) {
                     setCards([]);
                     setSelectedDeck('');
@@ -102,8 +107,16 @@ const App: React.FC = () => {
     return (
         <div className="app">
             <header className="app-header">
-                <h1>🎴 Учебные карточки из PDF</h1>
-                <p>Преобразуйте учебные материалы в карточки для запоминания</p>
+                <div className="header-content">
+                    <div className="header-title">
+                        <h1>🎴 Учебные карточки из PDF</h1>
+                        <p>Преобразуйте учебные материалы в карточки для запоминания</p>
+                    </div>
+                    <nav className="header-nav">
+                        <Link to="/" className="nav-link">Главная</Link>
+                        <Link to="/profile" className="nav-link">👤 Профиль</Link>
+                    </nav>
+                </div>
             </header>
 
             <main className="app-main">
@@ -150,7 +163,6 @@ const App: React.FC = () => {
                                     >
                                         Создать карточки
                                     </button>
-                                    {/* ✅ КНОПКА УДАЛЕНИЯ */}
                                     <button
                                         onClick={() => handleDeleteDeck(deck.name)}
                                         disabled={loading}
@@ -197,6 +209,18 @@ const App: React.FC = () => {
                 <p>Учебные карточки из PDF • Версия 1.0.0</p>
             </footer>
         </div>
+    );
+};
+
+const App: React.FC = () => {
+    return (
+        <Router>
+            <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/app" element={<MainApp />} />
+            </Routes>
+        </Router>
     );
 };
 
