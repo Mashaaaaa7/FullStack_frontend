@@ -28,3 +28,18 @@ export interface DeleteResponse {
     success: boolean;
     message: string;
 }
+
+export interface Deck {
+    name: string;
+    file_size: number;
+    created_at: string;
+}
+
+export interface HistoryItem {
+    id: string;
+    type: 'upload' | 'create_cards';
+    deck_name: string;
+    timestamp: string;
+    cards_count?: number;
+    file_size?: number;
+}

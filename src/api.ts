@@ -1,60 +1,130 @@
-import { Card, Deck, UploadResponse, CardsResponse, DeleteResponse } from './types';
+// api.ts
+const API_BASE_URL = 'http://localhost:8000/api';
 
-const API_BASE = 'http://localhost:8000/api';
-
-class FlashcardsAPI {
-    private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-        const response = await fetch(`${API_BASE}${endpoint}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
-            ...options,
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return response.json();
-    }
-
-    async healthCheck(): Promise<{ status: string; service: string }> {
-        return this.request('/health');
-    }
-
-    async uploadPDF(file: File): Promise<UploadResponse> {
+export const api = {
+    async uploadPDF(file: File) {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(`${API_BASE}/upload`, {
-            method: 'POST',
-            body: formData,
-        });
+        try {
+            const response = await fetch(`${API_BASE_URL}/upload`, {
+                method: 'POST',
+                body: formData,
+            });
 
-        return response.json();
-    }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+            }
 
-    async getDecks(): Promise<{ success: boolean; decks: Deck[] }> {
-        return this.request('/decks');
-    }
+            const result = await response.json();
+            console.log('Upload response:', result); // Добавим лог
+            return result;
+        } catch (error) {
+            console.error('Upload API error:', error);
+            throw error; // Просто пробрасываем ошибку дальше
+        }
+    },
 
-    async createCards(deckName: string): Promise<CardsResponse> {
-        return this.request(`/decks/${deckName}/cards`, {
-            method: 'POST',
-        });
-    }
+    async getDecks() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/decks`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            console.log('Get decks response:', result); // Добавим лог
+            return result;
+        } catch (error) {
+            console.error('Get decks API error:', error);
+            throw error;
+        }
+    },
 
-    async getCards(deckName: string): Promise<CardsResponse> {
-        return this.request(`/decks/${deckName}/cards`);
-    }
+    async createCards(deckName: string) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/decks/${deckName}/cards`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
 
-    async deleteDeck(deckName: string): Promise<DeleteResponse> {
-        const encodedName = encodeURIComponent(deckName);
-        return this.request(`/decks/${encodedName}`, {
-            method: 'DELETE',
-        });
-    }
-}
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-export const api = new FlashcardsAPI();
+            const result = await response.json();
+            console.log('Create cards response:', result); // Добавим лог
+            return result;
+        } catch (error) {
+            console.error('Create cards API error:', error);
+            throw error;
+        }
+    },
+
+    async deleteDeck(deckName: string) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/decks/${deckName}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Delete deck response:', result); // Добавим лог
+            return result;
+        } catch (error) {
+            console.error('Delete deck API error:', error);
+            throw error;
+        }
+    },
+
+    async getHistory(): Promise<{success: boolean; history: HistoryItem[]}> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/history`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            console.log('Get history response:', result); // Добавим лог
+            return result;
+        } catch (error) {
+            console.error('Get history API error:', error);
+            // Для демо возвращаем пустую историю
+            return { success: true, history: [] };
+        }
+    },
+
+    async addHistoryItem(item: Omit<HistoryItem, 'id'>): Promise<{success: boolean}> {
+        try {
+            // Генерируем ID на фронтенде
+            const itemWithId = {
+                ...item,
+                id: Math.random().toString(36).substr(2, 9)
+            };
+
+            const response = await fetch(`${API_BASE_URL}/history`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(itemWithId),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Add history response:', result); // Добавим лог
+            return result;
+        } catch (error) {
+            console.error('Add history API error:', error);
+            // Игнорируем ошибки истории, чтобы не мешать основному функционалу
+            return { success: true };
+        }
+    },
+};
