@@ -237,7 +237,7 @@ const AppPage: React.FC = () => {
             </main>
 
             <footer className="app-footer">
-                <p>Учебные карточки из PDF • Версия 1.0.0</p>
+                <p>Учебные карточки из PDF • Версия 1.0</p>
             </footer>
         </div>
     );
