@@ -22,7 +22,7 @@ const App: React.FC = () => {
         }
     };
 
-    // Загрузка PDF файла
+    // Загрузка файла
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
