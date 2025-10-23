@@ -1,119 +1,40 @@
-const API_BASE_URL = 'http://localhost:8000/';
-
-// Хранилище токена
-let authToken: string | null = localStorage.getItem('authToken');
+// api.ts
+const API_BASE_URL = 'http://localhost:8000/api';
 
 export const api = {
-    // Аутентификация
-    async register(email: string, password: string) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            if (result.success && result.token) {
-                authToken = result.token;
-                localStorage.setItem('authToken', result.token);
-                localStorage.setItem('user', JSON.stringify(result.user));
-            }
-            return result;
-        } catch (error) {
-            console.error('Register API error:', error);
-            throw error;
-        }
-    },
-
-    async login(email: string, password: string) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            if (result.success && result.token) {
-                authToken = result.token;
-                localStorage.setItem('authToken', result.token);
-                localStorage.setItem('user', JSON.stringify(result.user));
-            }
-            return result;
-        } catch (error) {
-            console.error('Login API error:', error);
-            throw error;
-        }
-    },
-
-    logout() {
-        authToken = null;
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-    },
-
-    getCurrentUser() {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-    },
-
-    // Защищенные API методы
     async uploadPDF(file: File) {
-        if (!authToken) throw new Error('Not authenticated');
-
         const formData = new FormData();
         formData.append('file', file);
 
         try {
             const response = await fetch(`${API_BASE_URL}/upload`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                },
                 body: formData,
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
             }
 
-            return await response.json();
+            const result = await response.json();
+            console.log('Upload response:', result); // Добавим лог
+            return result;
         } catch (error) {
             console.error('Upload API error:', error);
-            throw error;
+            throw error; // Просто пробрасываем ошибку дальше
         }
     },
 
     async getDecks() {
-        if (!authToken) throw new Error('Not authenticated');
-
         try {
-            const response = await fetch(`${API_BASE_URL}/decks`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
+            const response = await fetch(`${API_BASE_URL}/decks`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
-            return await response.json();
+            const result = await response.json();
+            console.log('Get decks response:', result); // Добавим лог
+            return result;
         } catch (error) {
             console.error('Get decks API error:', error);
             throw error;
@@ -121,13 +42,10 @@ export const api = {
     },
 
     async createCards(deckName: string) {
-        if (!authToken) throw new Error('Not authenticated');
-
         try {
             const response = await fetch(`${API_BASE_URL}/decks/${deckName}/cards`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`,
                     'Content-Type': 'application/json',
                 },
             });
@@ -136,7 +54,9 @@ export const api = {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
+            const result = await response.json();
+            console.log('Create cards response:', result); // Добавим лог
+            return result;
         } catch (error) {
             console.error('Create cards API error:', error);
             throw error;
@@ -144,48 +64,67 @@ export const api = {
     },
 
     async deleteDeck(deckName: string) {
-        if (!authToken) throw new Error('Not authenticated');
-
         try {
             const response = await fetch(`${API_BASE_URL}/decks/${deckName}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json',
-                },
             });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
+            const result = await response.json();
+            console.log('Delete deck response:', result); // Добавим лог
+            return result;
         } catch (error) {
             console.error('Delete deck API error:', error);
             throw error;
         }
     },
 
-    async getHistory() {
-        if (!authToken) throw new Error('Not authenticated');
-
+    async getHistory(): Promise<{success: boolean; history: HistoryItem[]}> {
         try {
+            const response = await fetch(`${API_BASE_URL}/history`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            console.log('Get history response:', result); // Добавим лог
+            return result;
+        } catch (error) {
+            console.error('Get history API error:', error);
+            // Для демо возвращаем пустую историю
+            return { success: true, history: [] };
+        }
+    },
+
+    async addHistoryItem(item: Omit<HistoryItem, 'id'>): Promise<{success: boolean}> {
+        try {
+            // Генерируем ID на фронтенде
+            const itemWithId = {
+                ...item,
+                id: Math.random().toString(36).substr(2, 9)
+            };
+
             const response = await fetch(`${API_BASE_URL}/history`, {
-                method: 'GET',
+                method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`,
                     'Content-Type': 'application/json',
                 },
+                body: JSON.stringify(itemWithId),
             });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
+            const result = await response.json();
+            console.log('Add history response:', result); // Добавим лог
+            return result;
         } catch (error) {
-            console.error('Get history API error:', error);
-            return { success: true, history: [] };
+            console.error('Add history API error:', error);
+            // Игнорируем ошибки истории, чтобы не мешать основному функционалу
+            return { success: true };
         }
     },
 };

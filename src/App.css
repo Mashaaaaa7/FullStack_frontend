@@ -325,4 +325,12 @@ body {
         cursor: not-allowed;
         transform: none;
     }
+    .history-section {
+        margin-top: 2rem;
+    }
+
+    .history-section h2 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
 }

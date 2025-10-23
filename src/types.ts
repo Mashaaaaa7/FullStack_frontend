@@ -11,6 +11,30 @@ export interface Deck {
     created_at: string;
 }
 
+export interface UploadResponse {
+    success: boolean;
+    message: string;
+    filename?: string;
+}
+
+export interface CardsResponse {
+    success: boolean;
+    cards: Card[];
+    deck_name: string;
+    total: number;
+}
+
+export interface DeleteResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface Deck {
+    name: string;
+    file_size: number;
+    created_at: string;
+}
+
 export interface HistoryItem {
     id: string;
     type: 'upload' | 'create_cards';
@@ -18,18 +42,4 @@ export interface HistoryItem {
     timestamp: string;
     cards_count?: number;
     file_size?: number;
-}
-
-export interface User {
-    id: number;
-    email: string;
-    name?: string;
-    theme?: string;
-}
-
-export interface AuthResponse {
-    success: boolean;
-    token: string;
-    user: User;
-    message?: string;
 }
