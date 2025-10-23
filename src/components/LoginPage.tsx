@@ -1,26 +1,47 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { api } from '../api';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Здесь будет логика авторизации
-        console.log('Login attempt:', email, password);
+        setLoading(true);
+        setError('');
 
-        // После успешной авторизации переходим на главную
-        navigate('/');
+        try {
+            const result = await api.login(email, password);
+
+            if (result.success) {
+                navigate('/');
+            } else {
+                setError(result.detail || 'Ошибка входа');
+            }
+        } catch (error: any) {
+            setError(error.message || 'Ошибка подключения к серверу');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="login-page"> {/* Изменили класс */}
-            <div className="login-container"> {/* Изменили класс */}
+        <div className="login-page">
+            <div className="login-container">
                 <h2>Вход в аккаунт</h2>
-                <form onSubmit={handleSubmit} className="login-form"> {/* Изменили класс */}
+
+                {error && (
+                    <div className="error-message">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="login-form">
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <input
@@ -30,6 +51,7 @@ const LoginPage: React.FC = () => {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             placeholder="Введите ваш email"
+                            disabled={loading}
                         />
                     </div>
                     <div className="form-group">
@@ -41,10 +63,15 @@ const LoginPage: React.FC = () => {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             placeholder="Введите ваш пароль"
+                            disabled={loading}
                         />
                     </div>
-                    <button type="submit" className="login-button"> {/* Изменили класс */}
-                        Войти
+                    <button
+                        type="submit"
+                        className="login-button"
+                        disabled={loading}
+                    >
+                        {loading ? 'Вход...' : 'Войти'}
                     </button>
                 </form>
                 <p className="auth-switch">

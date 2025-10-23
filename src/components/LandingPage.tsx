@@ -1,9 +1,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../api';
 import './LandingPage.css';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
+    const currentUser = api.getCurrentUser();
+
+    const handleLogout = () => {
+        api.logout();
+        navigate('/');
+        window.location.reload(); // Перезагружаем для обновления состояния
+    };
 
     return (
         <div className="landing-page">
@@ -11,21 +19,33 @@ const LandingPage: React.FC = () => {
                 <h1>Добро пожаловать 🎓</h1>
                 <p>Здесь вы можете загружать PDF и превращать их в карточки для запоминания.</p>
 
-                {/* Кнопки авторизации */}
-                <div className="auth-buttons">
-                    <button
-                        className="auth-btn login-btn"
-                        onClick={() => navigate('/login')}
-                    >
-                        Войти
-                    </button>
-                    <button
-                        className="auth-btn register-btn"
-                        onClick={() => navigate('/register')}
-                    >
-                        Зарегистрироваться
-                    </button>
-                </div>
+                {/* Статус авторизации */}
+                {currentUser ? (
+                    <div className="user-info">
+                        <p>Вы вошли как: <strong>{currentUser.email}</strong></p>
+                        <button
+                            className="logout-btn"
+                            onClick={handleLogout}
+                        >
+                            Выйти
+                        </button>
+                    </div>
+                ) : (
+                    <div className="auth-buttons">
+                        <button
+                            className="auth-btn login-btn"
+                            onClick={() => navigate('/login')}
+                        >
+                            Войти
+                        </button>
+                        <button
+                            className="auth-btn register-btn"
+                            onClick={() => navigate('/register')}
+                        >
+                            Зарегистрироваться
+                        </button>
+                    </div>
+                )}
 
                 <div className="landing-buttons">
                     <button
@@ -34,8 +54,11 @@ const LandingPage: React.FC = () => {
                     >
                         Начать работу
                     </button>
-                    <button className="secondary-button">
-                        Добавить пример в историю
+                    <button
+                        className="secondary-button"
+                        onClick={() => navigate('/profile')}
+                    >
+                        Мой профиль
                     </button>
                 </div>
             </header>
@@ -57,6 +80,11 @@ const LandingPage: React.FC = () => {
                         <div className="feature-icon">📊</div>
                         <h3>Отслеживание прогресса</h3>
                         <p>История действий и статистика в профиле</p>
+                    </div>
+                    <div className="feature-card">
+                        <div className="feature-icon">🔐</div>
+                        <h3>Безопасность</h3>
+                        <p>Ваши данные защищены и хранятся безопасно</p>
                     </div>
                 </div>
             </section>

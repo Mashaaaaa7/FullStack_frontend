@@ -1,34 +1,61 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { api } from '../api';
 import './RegisterPage.css';
 
 const RegisterPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Проверка совпадения паролей
         if (password !== confirmPassword) {
-            alert('Пароли не совпадают');
+            setError('Пароли не совпадают');
             return;
         }
 
-        // Здесь будет логика регистрации
-        console.log('Registration attempt:', email, password);
+        // Проверка длины пароля
+        if (password.length < 6) {
+            setError('Пароль должен быть не менее 6 символов');
+            return;
+        }
 
-        // После успешной регистрации переходим на главную
-        navigate('/');
+        setLoading(true);
+        setError('');
+
+        try {
+            const result = await api.register(email, password);
+
+            if (result.success) {
+                navigate('/');
+            } else {
+                setError(result.detail || 'Ошибка регистрации');
+            }
+        } catch (error: any) {
+            setError(error.message || 'Ошибка подключения к серверу');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="register-page"> {/* Изменили класс */}
-            <div className="register-container"> {/* Изменили класс */}
+        <div className="register-page">
+            <div className="register-container">
                 <h2>Регистрация</h2>
-                <form onSubmit={handleSubmit} className="register-form"> {/* Изменили класс */}
+
+                {error && (
+                    <div className="error-message">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="register-form">
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <input
@@ -38,6 +65,7 @@ const RegisterPage: React.FC = () => {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             placeholder="Введите ваш email"
+                            disabled={loading}
                         />
                     </div>
                     <div className="form-group">
@@ -48,7 +76,8 @@ const RegisterPage: React.FC = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            placeholder="Придумайте пароль"
+                            placeholder="Придумайте пароль (мин. 6 символов)"
+                            disabled={loading}
                         />
                     </div>
                     <div className="form-group">
@@ -60,10 +89,15 @@ const RegisterPage: React.FC = () => {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
                             placeholder="Повторите пароль"
+                            disabled={loading}
                         />
                     </div>
-                    <button type="submit" className="register-button"> {/* Изменили класс */}
-                        Зарегистрироваться
+                    <button
+                        type="submit"
+                        className="register-button"
+                        disabled={loading}
+                    >
+                        {loading ? 'Регистрация...' : 'Зарегистрироваться'}
                     </button>
                 </form>
                 <p className="auth-switch">
