@@ -29,17 +29,19 @@ export interface DeleteResponse {
     message: string;
 }
 
-export interface Deck {
-    name: string;
-    file_size: number;
+export interface UserProfile {
+    id: number;
+    email: string;
     created_at: string;
+    last_login?: string;
 }
 
-export interface HistoryItem {
-    id: string;
-    type: 'upload' | 'create_cards';
-    deck_name: string;
+
+export interface ActionHistory {
+    id?: number;
+    action: string;
+    deck_name?: string;
+    filename?: string;
     timestamp: string;
-    cards_count?: number;
-    file_size?: number;
+    details: string;
 }

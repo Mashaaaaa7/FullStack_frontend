@@ -1,60 +1,43 @@
-// src/contexts/AuthContext.tsx
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+// context/AuthContext.tsx - добавляем навигацию в logout
+import React, { createContext, useState, useContext, ReactNode } from 'react';
+
+interface User {
+    email: string;
+}
 
 interface AuthContextType {
-    token: string | null;
-    email: string;
-    setToken: (token: string) => void;
-    login: (email: string, password: string) => Promise<void>;
+    user: User | null;
+    login: (token: string, email: string) => void;
     logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
-    token: null,
-    email: "",
-    setToken: () => {},
-    login: async () => {},
+    user: null,
+    login: () => {},
     logout: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [token, setTokenState] = useState<string | null>(() => localStorage.getItem("token"));
-    const [email, setEmail] = useState<string>(() => localStorage.getItem("email") || "");
+    const [user, setUser] = useState<User | null>(() => {
+        const token = localStorage.getItem('token');
+        const email = localStorage.getItem('email');
+        return token && email ? { email } : null;
+    });
 
-    const setToken = (t: string) => {
-        localStorage.setItem("token", t);
-        setTokenState(t);
-    };
-
-    const login = async (emailInput: string, password: string) => {
-        // Заглушка проверки
-        if (!emailInput.includes("@") || password.length < 6 || !/[A-Z]/.test(password)) {
-            throw new Error("Неверная почта или пароль");
-        }
-        const dummyToken = "dummy-token";
-        localStorage.setItem("token", dummyToken);
-        localStorage.setItem("email", emailInput);
-        setTokenState(dummyToken);
-        setEmail(emailInput);
+    const login = (token: string, email: string) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('email', email);
+        setUser({ email });
     };
 
     const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("email");
-        setTokenState(null);
-        setEmail("");
+        localStorage.removeItem('token');
+        localStorage.removeItem('email');
+        setUser(null);
+        // Навигация будет обработана в компонентах через useNavigate
     };
 
-    useEffect(() => {
-        const savedEmail = localStorage.getItem("email");
-        if (savedEmail) setEmail(savedEmail);
-    }, []);
-
-    return (
-        <AuthContext.Provider value={{ token, email, setToken, login, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

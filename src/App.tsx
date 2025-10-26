@@ -1,41 +1,44 @@
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './Context/AuthContext';
 import { Login } from './components/Auth/Login';
 import { Register } from './components/Auth/Register';
 import DashboardApp from './components/Dashboard/DashboardApp';
+import { Profile } from './components/Profile/Profile';
+import { Navbar } from './components/Layout/Navbar';
 import './App.css';
 
 const AppContent: React.FC = () => {
     const { user } = useAuth();
-    const [showRegister, setShowRegister] = useState(false);
 
     if (!user) {
-        return showRegister
-            ? <Register switchToLogin={() => setShowRegister(false)} />
-            : <Login switchToRegister={() => setShowRegister(true)} />;
+        return (
+            <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+        );
     }
 
-    return <DashboardApp />;
-};
-
-const App: React.FC = () => (
-    <AuthProvider>
-        <AppContent />
-    </AuthProvider>
-);
-
-const App: React.FC = () => {
     return (
-        <Router>
+        <>
+            <Navbar />
             <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/app" element={<MainApp />} />
+                <Route path="/app" element={<DashboardApp />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="*" element={<Navigate to="/app" replace />} />
             </Routes>
-        </Router>
+        </>
     );
 };
 
+const App: React.FC = () => (
+    <Router>
+        <AuthProvider>
+            <AppContent />
+        </AuthProvider>
+    </Router>
+);
+
 export default App;
-
-
