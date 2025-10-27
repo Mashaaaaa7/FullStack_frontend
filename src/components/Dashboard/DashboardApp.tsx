@@ -12,6 +12,31 @@ const DashboardApp: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
+    // Загрузка сохраненных карточек при монтировании
+    useEffect(() => {
+        const savedCards = localStorage.getItem('savedCards');
+        const savedSelectedDeck = localStorage.getItem('selectedDeck');
+
+        if (savedCards && savedSelectedDeck) {
+            try {
+                setCards(JSON.parse(savedCards));
+                setSelectedDeck(savedSelectedDeck);
+            } catch (error) {
+                console.error('Error loading saved cards:', error);
+            }
+        }
+
+        loadDecks();
+    }, []);
+
+    // Сохранение карточек в localStorage при изменении
+    useEffect(() => {
+        if (cards.length > 0 && selectedDeck) {
+            localStorage.setItem('savedCards', JSON.stringify(cards));
+            localStorage.setItem('selectedDeck', selectedDeck);
+        }
+    }, [cards, selectedDeck]);
+
     const loadDecks = async () => {
         try {
             const res = await api.getDecks();
@@ -26,10 +51,6 @@ const DashboardApp: React.FC = () => {
             setDecks([]);
         }
     };
-
-    useEffect(() => {
-        loadDecks();
-    }, []);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -85,6 +106,8 @@ const DashboardApp: React.FC = () => {
                 if (selectedDeck === deckName) {
                     setCards([]);
                     setSelectedDeck('');
+                    localStorage.removeItem('savedCards');
+                    localStorage.removeItem('selectedDeck');
                 }
             }
         } catch (err) {
@@ -93,6 +116,15 @@ const DashboardApp: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Функция для очистки карточек
+    const handleClearCards = () => {
+        setCards([]);
+        setSelectedDeck('');
+        localStorage.removeItem('savedCards');
+        localStorage.removeItem('selectedDeck');
+        setMessage('Карточки очищены');
     };
 
     return (
@@ -165,7 +197,16 @@ const DashboardApp: React.FC = () => {
 
                 {cards.length > 0 && (
                     <section className="cards-section">
-                        <h2>🎴 Карточки из "{selectedDeck}" ({cards.length})</h2>
+                        <div className="cards-header">
+                            <h2>🎴 Карточки из "{selectedDeck}" ({cards.length})</h2>
+                            <button
+                                onClick={handleClearCards}
+                                className="clear-cards-btn"
+                                title="Очистить карточки"
+                            >
+                                🗑️ Очистить
+                            </button>
+                        </div>
                         <div className="cards-grid">
                             {cards.map(card => (
                                 <div key={card.id} className="flashcard">
