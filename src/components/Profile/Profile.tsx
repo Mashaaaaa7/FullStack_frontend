@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Context/AuthContext';
 import { api } from '../../api/api';
 import { UserProfile, ActionHistory } from '../../types';
 import './Profile.css';
 
 export const Profile: React.FC = () => {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
+    const { user } = useAuth();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [actionHistory, setActionHistory] = useState<ActionHistory[]>([]);
     const [loading, setLoading] = useState(true);
@@ -23,37 +21,43 @@ export const Profile: React.FC = () => {
         try {
             setLoading(true);
 
-            // Загружаем историю действий
+            // История теперь сохраняется между перезагрузками
             const historyRes = await api.actionHistory();
             if (historyRes.success) {
                 setActionHistory(historyRes.history || []);
             }
 
-            // Создаем mock профиль на основе данных из контекста
-            const mockProfile: UserProfile = {
-                id: 1,
-                email: user?.email || 'unknown@email.com',
-                created_at: new Date().toISOString(),
-                last_login: new Date().toISOString()
-            };
+            const mockProfile = createMockProfile();
             setProfile(mockProfile);
 
         } catch (error) {
             console.error('Error loading profile:', error);
             setMessage('Ошибка загрузки профиля');
 
-            // Fallback: создаем mock данные при ошибке
-            const mockProfile: UserProfile = {
-                id: 1,
-                email: user?.email || 'unknown@email.com',
-                created_at: new Date().toISOString(),
-                last_login: new Date().toISOString()
-            };
+            const mockProfile = createMockProfile();
             setProfile(mockProfile);
             setActionHistory([]);
         } finally {
             setLoading(false);
         }
+    };
+
+    const createMockProfile = (): UserProfile => {
+        let lastLoginDate = localStorage.getItem('user_last_login');
+        const now = new Date().toISOString();
+
+        if (!lastLoginDate) {
+            lastLoginDate = now;
+        }
+
+        localStorage.setItem('user_last_login', now);
+
+        return {
+            created_at: "",
+            id: 1,
+            email: user?.email || 'unknown@email.com',
+            last_login: lastLoginDate
+        };
     };
 
     const handleUpdateEmail = async () => {
@@ -63,20 +67,14 @@ export const Profile: React.FC = () => {
         }
 
         try {
-            // Mock обновление email
             setMessage('Email успешно обновлен');
             setProfile(prev => prev ? { ...prev, email: newEmail } : null);
             setEditingEmail(false);
-            localStorage.setItem('email', newEmail);
+            localStorage.setItem('user_email', newEmail);
         } catch (error) {
             console.error('Error updating email:', error);
             setMessage('Ошибка обновления email');
         }
-    };
-
-    const handleLogout = () => {
-        logout();
-        navigate('/app');
     };
 
     const formatDate = (dateString: string) => {
@@ -95,9 +93,6 @@ export const Profile: React.FC = () => {
         <div className="profile-container">
             <header className="profile-header">
                 <h1>👤 Профиль пользователя</h1>
-                <button onClick={handleLogout} className="logout-btn">
-                    Выйти
-                </button>
             </header>
 
             {message && (
@@ -107,7 +102,6 @@ export const Profile: React.FC = () => {
             )}
 
             <div className="profile-content">
-                {/* Информация о пользователе */}
                 <section className="profile-info">
                     <h2>Личная информация</h2>
                     <div className="info-grid">
@@ -153,17 +147,12 @@ export const Profile: React.FC = () => {
                             )}
                         </div>
                         <div className="info-item">
-                            <label>Дата регистрации:</label>
-                            <span>{profile ? formatDate(profile.created_at) : 'N/A'}</span>
-                        </div>
-                        <div className="info-item">
                             <label>Последний вход:</label>
                             <span>{profile?.last_login ? formatDate(profile.last_login) : 'N/A'}</span>
                         </div>
                     </div>
                 </section>
 
-                {/* История действий */}
                 <section className="action-history">
                     <h2>📊 История действий</h2>
                     {actionHistory.length === 0 ? (
