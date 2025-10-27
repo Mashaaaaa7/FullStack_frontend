@@ -95,9 +95,6 @@ export const Profile: React.FC = () => {
         <div className="profile-container">
             <header className="profile-header">
                 <h1>👤 Профиль пользователя</h1>
-                <button onClick={handleLogout} className="logout-btn">
-                    Выйти
-                </button>
             </header>
 
             {message && (
