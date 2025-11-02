@@ -1,7 +1,6 @@
 import {Deck, UploadResponse, CardsResponse, DeleteResponse, ActionHistory} from '../types';
 
-// В файле api.ts
-const API_BASE = 'http://127.0.0.1:8000/api/pdf'; // Добавьте /pdf
+const API_BASE = 'http://127.0.0.1:8000/api/pdf';
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
