@@ -1,148 +1,81 @@
-import {
-    ApiResponse,
-    ActionHistory,
-    GenerateQuestionRequest,
-    QAGenerationResponse,
-    FlashcardBatchCreate,
-    Flashcard,
-    PdfUploadResponse,
-    PdfFlashcardGenerationResponse
-} from '../types';
+import {Deck, UploadResponse, CardsResponse, DeleteResponse, ActionHistory} from '../types';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// В файле api.ts
+const API_BASE = 'http://127.0.0.1:8000/api/pdf'; // Добавьте /pdf
+
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+};
 
 export const api = {
-    // Генерация Q&A пар из текста
-    generateQAPairs: async (request: GenerateQuestionRequest): Promise<QAGenerationResponse> => {
-        const response = await fetch(`${API_BASE_URL}/model/generate_qa_pairs`, {
+    getDecks: async (): Promise<{ success: boolean; decks: Deck[] }> => {
+        const res = await fetch(`${API_BASE}/decks`, { // Теперь будет /api/pdf/decks
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
+            headers: getAuthHeaders()
         });
-
-        if (!response.ok) {
-            throw new Error('Ошибка генерации Q&A пар');
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
         }
-
-        return response.json();
+        return await res.json();
     },
 
-    // Автоматическое создание карточек из PDF
-    generateFlashcardsFromPdf: async (pdfFileId: number): Promise<PdfFlashcardGenerationResponse> => {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`${API_BASE_URL}/model/generate_from_pdf/${pdfFileId}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error('Ошибка генерации карточек из PDF');
-        }
-
-        return response.json();
-    },
-
-    // Создание нескольких карточек
-    createFlashcardBatch: async (batch: FlashcardBatchCreate): Promise<ApiResponse<Flashcard[]>> => {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`${API_BASE_URL}/model/create_flashcard_batch`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(batch),
-        });
-
-        if (!response.ok) {
-            throw new Error('Ошибка создания карточек');
-        }
-
-        return response.json();
-    },
-
-    // Получение карточек пользователя
-    getUserFlashcards: async (): Promise<ApiResponse<{ flashcards: Flashcard[] }>> => {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`${API_BASE_URL}/model/flashcards`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error('Ошибка получения карточек');
-        }
-
-        return response.json();
-    },
-
-    // Загрузка PDF файла
-    uploadPdf: async (file: File): Promise<PdfUploadResponse> => {
-        const token = localStorage.getItem('auth_token');
+    uploadPDF: async (file: File): Promise<UploadResponse> => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(`${API_BASE_URL}/pdf/upload`, {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_BASE}/upload`, { // Теперь будет /api/pdf/upload
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${token}`
             },
-            body: formData,
+            body: formData
         });
-
-        if (!response.ok) {
-            throw new Error('Ошибка загрузки файла');
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
         }
-
-        return response.json();
+        return await res.json();
     },
 
-    // История действий (локальная)
-    addToHistory: async (action: string, details: string, filename?: string, deck_name?: string): Promise<ApiResponse<void>> => {
-        try {
-            const savedHistory = localStorage.getItem('action_history');
-            const history: ActionHistory[] = savedHistory ? JSON.parse(savedHistory) : [];
-
-            const newAction: ActionHistory = {
-                id: Date.now(),
-                action,
-                timestamp: new Date().toISOString(),
-                details,
-                filename,
-                deck_name
-            };
-
-            history.unshift(newAction);
-            localStorage.setItem('action_history', JSON.stringify(history.slice(0, 50)));
-
-            return { success: true };
-        } catch (error) {
-            console.error('Error adding to history:', error);
-            return { success: false };
+    createCards: async (deckName: string): Promise<CardsResponse> => {
+        const res = await fetch(`${API_BASE}/decks/${deckName}/cards`, { // /api/pdf/decks/{name}/cards
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
         }
+        return await res.json();
     },
 
-    actionHistory: async (): Promise<ApiResponse<{ history: ActionHistory[] }>> => {
-        try {
-            const savedHistory = localStorage.getItem('action_history');
-            const history: ActionHistory[] = savedHistory ? JSON.parse(savedHistory) : [];
-
-            return {
-                success: true,
-                history
-            };
-        } catch (error) {
-            console.error('Error fetching action history:', error);
-            return {
-                success: false,
-                history: []
-            };
+    deleteDeck: async (deckName: string): Promise<DeleteResponse> => {
+        const res = await fetch(`${API_BASE}/decks/${deckName}`, { // /api/pdf/decks/{name}
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
         }
-    }
+        return await res.json();
+    },
+
+    actionHistory: async (): Promise<{
+        success: boolean;
+        history: ActionHistory[];
+        total: number
+    }> => {
+        const res = await fetch(`${API_BASE}/history`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    },
+
 };

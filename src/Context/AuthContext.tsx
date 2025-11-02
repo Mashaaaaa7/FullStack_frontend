@@ -1,122 +1,52 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 
-// Определяем User интерфейс локально чтобы избежать конфликтов
 interface User {
-    id: number;
     email: string;
-    username: string;
 }
 
-export interface AuthContextType {
+interface AuthContextType {
     user: User | null;
-    login: (email: string, password: string) => Promise<void>;
-    register: (email: string, password: string, username: string) => Promise<void>;
+    login: (token: string, email: string) => void;
     logout: () => void;
     loading: boolean;
-    isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-    children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-            try {
-                setUser(JSON.parse(savedUser));
-            } catch (error) {
-                console.error('Error parsing saved user:', error);
-                localStorage.removeItem('user');
-            }
+        const token = localStorage.getItem('token');
+        const savedEmail = localStorage.getItem('userEmail');
+
+        if (token && savedEmail) {
+            setUser({ email: savedEmail });
         }
         setLoading(false);
     }, []);
 
-    const login = async (email: string, password: string): Promise<void> => {
-        setLoading(true);
-        try {
-            // Реальный API call к вашему бекенду
-            const response = await fetch('http://localhost:8000/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Login failed');
-            }
-
-            const userData: User = await response.json();
-            setUser(userData);
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('user_last_login', new Date().toISOString());
-        } catch (error) {
-            console.error('Login error:', error);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
+    const login = (token: string, email: string) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('userEmail', email);
+        setUser({ email });
     };
 
-    const register = async (email: string, password: string, username: string): Promise<void> => {
-        setLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password, username }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Registration failed');
-            }
-
-            const userData: User = await response.json();
-            setUser(userData);
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('user_last_login', new Date().toISOString());
-        } catch (error) {
-            console.error('Registration error:', error);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const logout = (): void => {
+    const logout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userEmail');
         setUser(null);
-        localStorage.removeItem('user');
-        localStorage.removeItem('user_last_login');
-    };
-
-    const value: AuthContextType = {
-        user,
-        login,
-        register,
-        logout,
-        loading,
-        isAuthenticated: !!user
     };
 
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={{ user, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
