@@ -3,13 +3,17 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import { Login } from './components/Auth/Login';
 import { Register } from './components/Auth/Register';
-import DashboardApp from './components/Dashboard/DashboardApp';
+import {DashboardApp} from './components/Dashboard/DashboardApp';
 import { Profile } from './components/Profile/Profile';
 import { Navbar } from './components/Layout/Navbar';
 import './App.css';
 
 const AppContent: React.FC = () => {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return <div className="loading">Загрузка...</div>;
+    }
 
     if (!user) {
         return (
