@@ -1,15 +1,7 @@
 // User types
-export interface User {
-    id: number;
-    email: string;
-    username: string;
-}
-
-export interface UserProfile {
-    id: number;
+export interface UserProfile  {
     email: string;
     created_at: string;
-    last_login?: string;
 }
 
 // Card types (ваши существующие + наши новые)

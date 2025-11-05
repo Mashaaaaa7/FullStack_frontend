@@ -21,42 +21,33 @@ export const Profile: React.FC = () => {
         try {
             setLoading(true);
 
-            // История теперь сохраняется между перезагрузками
+            // Загружаем историю действий
             const historyRes = await api.actionHistory();
             if (historyRes.success) {
                 setActionHistory(historyRes.history || []);
             }
 
-            const mockProfile = createMockProfile();
-            setProfile(mockProfile);
+            // Создаем профиль из данных пользователя
+            const userProfile = createProfile();
+            setProfile(userProfile);
 
         } catch (error) {
             console.error('Error loading profile:', error);
             setMessage('Ошибка загрузки профиля');
 
-            const mockProfile = createMockProfile();
-            setProfile(mockProfile);
+            // Создаем профиль даже при ошибке
+            const userProfile = createProfile();
+            setProfile(userProfile);
             setActionHistory([]);
         } finally {
             setLoading(false);
         }
     };
 
-    const createMockProfile = (): UserProfile => {
-        let lastLoginDate = localStorage.getItem('user_last_login');
-        const now = new Date().toISOString();
-
-        if (!lastLoginDate) {
-            lastLoginDate = now;
-        }
-
-        localStorage.setItem('user_last_login', now);
-
+    const createProfile = (): UserProfile => {
         return {
-            created_at: "",
-            id: 1,
             email: user?.email || 'unknown@email.com',
-            last_login: lastLoginDate
+            created_at: new Date().toISOString()
         };
     };
 
@@ -106,10 +97,6 @@ export const Profile: React.FC = () => {
                     <h2>Личная информация</h2>
                     <div className="info-grid">
                         <div className="info-item">
-                            <label>ID пользователя:</label>
-                            <span>{profile?.id || 'N/A'}</span>
-                        </div>
-                        <div className="info-item">
                             <label>Email:</label>
                             {editingEmail ? (
                                 <div className="email-edit">
@@ -146,10 +133,12 @@ export const Profile: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="info-item">
-                            <label>Последний вход:</label>
-                            <span>{profile?.last_login ? formatDate(profile.last_login) : 'N/A'}</span>
-                        </div>
+                        {profile?.created_at && (
+                            <div className="info-item">
+                                <label>Дата регистрации:</label>
+                                <span>{formatDate(profile.created_at)}</span>
+                            </div>
+                        )}
                     </div>
                 </section>
 
