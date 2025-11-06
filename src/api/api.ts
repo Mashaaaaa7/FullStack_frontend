@@ -14,7 +14,7 @@ const getAuthHeaders = () => {
 export const api = {
     getDecks: async (): Promise<{ success: boolean; decks: Deck[] }> => {
         const res = await fetch(`${API_BASE}/decks`, { // Теперь будет /api/pdf/decks
-            method: 'POST',
+            method: 'GET',
             headers: getAuthHeaders()
         });
         if (!res.ok) {

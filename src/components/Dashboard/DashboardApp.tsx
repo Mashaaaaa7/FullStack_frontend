@@ -4,7 +4,7 @@ import { api } from '../../api/api';
 import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
 
-export const DashboardApp: React.FC = () => {
+const DashboardApp: React.FC = () => {
     const { user } = useAuth();
     const [decks, setDecks] = useState<Deck[]>([]);
     const [cards, setCards] = useState<Card[]>([]);
@@ -25,6 +25,8 @@ export const DashboardApp: React.FC = () => {
                 console.error('Error loading saved cards:', error);
             }
         }
+
+        loadDecks();
     }, []);
 
     // Сохранение карточек в localStorage при изменении
@@ -229,3 +231,5 @@ export const DashboardApp: React.FC = () => {
         </div>
     );
 };
+
+export { DashboardApp };
