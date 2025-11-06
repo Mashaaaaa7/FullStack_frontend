@@ -12,7 +12,6 @@ const DashboardApp: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
-    // Загрузка сохраненных карточек при монтировании
     useEffect(() => {
         const savedCards = localStorage.getItem('savedCards');
         const savedSelectedDeck = localStorage.getItem('selectedDeck');
@@ -29,7 +28,6 @@ const DashboardApp: React.FC = () => {
         loadDecks();
     }, []);
 
-    // Сохранение карточек в localStorage при изменении
     useEffect(() => {
         if (cards.length > 0 && selectedDeck) {
             localStorage.setItem('savedCards', JSON.stringify(cards));
@@ -39,15 +37,11 @@ const DashboardApp: React.FC = () => {
 
     const loadDecks = async () => {
         try {
-            const res = await api.getDecks();
-            if (res.success && Array.isArray(res.decks)) {
-                setDecks(res.decks);
-            } else {
-                setDecks([]);
-            }
+            const saved = localStorage.getItem('uploadedFiles') || '[]';
+            const files = JSON.parse(saved);
+            setDecks(files);
         } catch (error) {
             console.error('Load decks error:', error);
-            setMessage('Ошибка загрузки файлов');
             setDecks([]);
         }
     };
@@ -61,16 +55,24 @@ const DashboardApp: React.FC = () => {
 
         try {
             const res = await api.uploadPDF(file);
-            if (res.success) {
-                setMessage('Файл успешно загружен');
-                await loadDecks();
-            } else {
-                setMessage(res.message || 'Ошибка загрузки файла');
-            }
+
+            const newFile = {
+                id: res.file_id || Date.now(),
+                name: res.filename || file.name,
+                file_size: file.size,
+                created_at: new Date().toISOString()
+            };
+
+            const saved = localStorage.getItem('uploadedFiles') || '[]';
+            const files = JSON.parse(saved);
+            files.push(newFile);
+            localStorage.setItem('uploadedFiles', JSON.stringify(files));
+
+            setDecks(files);  // ✅ ОБНОВИТЬ UI
+            setMessage('✅ ' + res.message);
             e.target.value = '';
-        } catch (err) {
-            console.error('Upload error:', err);
-            setMessage('Ошибка загрузки файла');
+        } catch (err: any) {
+            setMessage(`❌ ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -79,46 +81,52 @@ const DashboardApp: React.FC = () => {
     const handleCreateCards = async (deckName: string) => {
         setLoading(true);
         setMessage('');
+
         try {
             const res = await api.createCards(deckName);
-            if (res.success) {
+            if (res.success && res.cards) {
                 setCards(res.cards);
                 setSelectedDeck(deckName);
-                setMessage(`Создано ${res.total} карточек`);
+                setMessage(`✅ Загружено ${res.cards.length} карточек`);
+            } else {
+                setMessage('❌ Ошибка при загрузке карточек');
             }
-        } catch (err) {
-            console.error(err);
-            setMessage('Ошибка создания карточек');
+        } catch (err: any) {
+            setMessage(`❌ ${err.message}`);
         } finally {
             setLoading(false);
         }
     };
 
     const handleDeleteDeck = async (deckName: string) => {
-        if (!window.confirm(`Удалить файл "${deckName}" и все карточки?`)) return;
+        if (!window.confirm(`Удалить ${deckName}?`)) return;
+
         setLoading(true);
-        setMessage('');
+
         try {
-            const res = await api.deleteDeck(deckName);
-            setMessage(res.message);
-            if (res.success) {
-                await loadDecks();
-                if (selectedDeck === deckName) {
-                    setCards([]);
-                    setSelectedDeck('');
-                    localStorage.removeItem('savedCards');
-                    localStorage.removeItem('selectedDeck');
-                }
+            // ✅ Удалить из localStorage
+            const saved = localStorage.getItem('uploadedFiles') || '[]';
+            let files = JSON.parse(saved);
+            files = files.filter((f: Deck) => f.name !== deckName);
+            localStorage.setItem('uploadedFiles', JSON.stringify(files));
+
+            setMessage('✅ Файл удален');
+
+            await loadDecks(); // ✅ Перезагрузить список
+
+            if (selectedDeck === deckName) {
+                setCards([]);
+                setSelectedDeck('');
+                localStorage.removeItem('savedCards');
+                localStorage.removeItem('selectedDeck');
             }
-        } catch (err) {
-            console.error(err);
-            setMessage('Ошибка удаления файла');
+        } catch (err: any) {
+            setMessage(`❌ ${err.message}`);
         } finally {
             setLoading(false);
         }
     };
 
-    // Функция для очистки карточек
     const handleClearCards = () => {
         setCards([]);
         setSelectedDeck('');
@@ -208,8 +216,8 @@ const DashboardApp: React.FC = () => {
                             </button>
                         </div>
                         <div className="cards-grid">
-                            {cards.map(card => (
-                                <div key={card.id} className="flashcard">
+                            {cards.map((card, index) => (
+                                <div key={card.id || index} className="flashcard">
                                     <div className="card-front">
                                         <h3>Вопрос</h3>
                                         <p>{card.question}</p>

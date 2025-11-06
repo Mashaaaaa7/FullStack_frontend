@@ -17,25 +17,27 @@ export const Profile: React.FC = () => {
         loadProfileData();
     }, []);
 
+    // ✅ ОДНА функция loadProfileData
     const loadProfileData = async () => {
         try {
             setLoading(true);
 
-            // Загружаем историю действий
+            // Загрузить историю
             const historyRes = await api.actionHistory();
-            if (historyRes.success) {
-                setActionHistory(historyRes.history || []);
+            if (historyRes.success && historyRes.history) {
+                setActionHistory(historyRes.history);
+            } else {
+                setActionHistory([]);
             }
 
-            // Создаем профиль из данных пользователя
+            // Создать профиль из текущего пользователя
             const userProfile = createProfile();
             setProfile(userProfile);
 
         } catch (error) {
             console.error('Error loading profile:', error);
-            setMessage('Ошибка загрузки профиля');
 
-            // Создаем профиль даже при ошибке
+            // Создать профиль даже при ошибке
             const userProfile = createProfile();
             setProfile(userProfile);
             setActionHistory([]);
@@ -165,11 +167,6 @@ export const Profile: React.FC = () => {
                                     {action.filename && (
                                         <div className="action-meta">
                                             Файл: {action.filename}
-                                        </div>
-                                    )}
-                                    {action.deck_name && (
-                                        <div className="action-meta">
-                                            Колода: {action.deck_name}
                                         </div>
                                     )}
                                 </div>
