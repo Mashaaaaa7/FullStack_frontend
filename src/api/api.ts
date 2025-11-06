@@ -1,4 +1,4 @@
-import {UploadResponse, CardsResponse, ActionHistory} from '../types';
+import {UploadResponse, ActionHistory, Card} from '../types';
 
 const API_BASE = 'http://127.0.0.1:8000';
 
@@ -38,7 +38,7 @@ export const api = {
         };
     },
 
-    createCards: async (fileName: string): Promise<CardsResponse> => {
+    createCards: async (fileName: string): Promise<Card[]> => {
         const res = await fetch(`${API_BASE}/api/cards/${fileName}`, {
             method: 'GET',
             headers: getAuthHeaders()
@@ -46,6 +46,7 @@ export const api = {
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
+        // ✅ Backend возвращает МАССИВ напрямую
         return await res.json();
     },
 

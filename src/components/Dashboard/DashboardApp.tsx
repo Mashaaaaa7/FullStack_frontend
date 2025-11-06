@@ -12,9 +12,12 @@ const DashboardApp: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
+    // ✅ Получить ключ для текущего пользователя
+    const getUserFileKey = () => `files_${user?.email}`;
+
     useEffect(() => {
-        const savedCards = localStorage.getItem('savedCards');
-        const savedSelectedDeck = localStorage.getItem('selectedDeck');
+        const savedCards = localStorage.getItem(`cards_${user?.email}`);
+        const savedSelectedDeck = localStorage.getItem(`deck_${user?.email}`);
 
         if (savedCards && savedSelectedDeck) {
             try {
@@ -26,18 +29,18 @@ const DashboardApp: React.FC = () => {
         }
 
         loadDecks();
-    }, []);
+    }, [user?.email]); // ✅ Зависит от email пользователя
 
     useEffect(() => {
         if (cards.length > 0 && selectedDeck) {
-            localStorage.setItem('savedCards', JSON.stringify(cards));
-            localStorage.setItem('selectedDeck', selectedDeck);
+            localStorage.setItem(`cards_${user?.email}`, JSON.stringify(cards));
+            localStorage.setItem(`deck_${user?.email}`, selectedDeck);
         }
-    }, [cards, selectedDeck]);
+    }, [cards, selectedDeck, user?.email]);
 
     const loadDecks = async () => {
         try {
-            const saved = localStorage.getItem('uploadedFiles') || '[]';
+            const saved = localStorage.getItem(getUserFileKey()) || '[]';
             const files = JSON.parse(saved);
             setDecks(files);
         } catch (error) {
@@ -63,12 +66,12 @@ const DashboardApp: React.FC = () => {
                 created_at: new Date().toISOString()
             };
 
-            const saved = localStorage.getItem('uploadedFiles') || '[]';
+            const saved = localStorage.getItem(getUserFileKey()) || '[]';
             const files = JSON.parse(saved);
             files.push(newFile);
-            localStorage.setItem('uploadedFiles', JSON.stringify(files));
+            localStorage.setItem(getUserFileKey(), JSON.stringify(files));
 
-            setDecks(files);  // ✅ ОБНОВИТЬ UI
+            setDecks(files);
             setMessage('✅ ' + res.message);
             e.target.value = '';
         } catch (err: any) {
@@ -83,13 +86,15 @@ const DashboardApp: React.FC = () => {
         setMessage('');
 
         try {
-            const res = await api.createCards(deckName);
-            if (res.success && res.cards) {
-                setCards(res.cards);
+            const cards = await api.createCards(deckName);
+
+            // ✅ Backend возвращает МАССИВ напрямую, не объект
+            if (Array.isArray(cards) && cards.length > 0) {
+                setCards(cards);
                 setSelectedDeck(deckName);
-                setMessage(`✅ Загружено ${res.cards.length} карточек`);
+                setMessage(`✅ Загружено ${cards.length} карточек`);
             } else {
-                setMessage('❌ Ошибка при загрузке карточек');
+                setMessage('❌ Карточки не найдены');
             }
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
@@ -104,21 +109,19 @@ const DashboardApp: React.FC = () => {
         setLoading(true);
 
         try {
-            // ✅ Удалить из localStorage
-            const saved = localStorage.getItem('uploadedFiles') || '[]';
+            const saved = localStorage.getItem(getUserFileKey()) || '[]';
             let files = JSON.parse(saved);
             files = files.filter((f: Deck) => f.name !== deckName);
-            localStorage.setItem('uploadedFiles', JSON.stringify(files));
+            localStorage.setItem(getUserFileKey(), JSON.stringify(files));
 
             setMessage('✅ Файл удален');
-
-            await loadDecks(); // ✅ Перезагрузить список
+            await loadDecks();
 
             if (selectedDeck === deckName) {
                 setCards([]);
                 setSelectedDeck('');
-                localStorage.removeItem('savedCards');
-                localStorage.removeItem('selectedDeck');
+                localStorage.removeItem(`cards_${user?.email}`);
+                localStorage.removeItem(`deck_${user?.email}`);
             }
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
@@ -130,8 +133,8 @@ const DashboardApp: React.FC = () => {
     const handleClearCards = () => {
         setCards([]);
         setSelectedDeck('');
-        localStorage.removeItem('savedCards');
-        localStorage.removeItem('selectedDeck');
+        localStorage.removeItem(`cards_${user?.email}`);
+        localStorage.removeItem(`deck_${user?.email}`);
         setMessage('Карточки очищены');
     };
 
@@ -168,10 +171,10 @@ const DashboardApp: React.FC = () => {
                 )}
 
                 <section className="decks-section">
-                    <h2>📁 PDF файлы ({decks.length})</h2>
+                    <h2>📁 Ваши PDF файлы ({decks.length})</h2>
                     <div className="decks-grid">
                         {decks.map(deck => (
-                            <div key={deck.name} className="deck-card">
+                            <div key={deck.id} className="deck-card">
                                 <div className="deck-info">
                                     <h3>{deck.name}</h3>
                                     <p>Размер: {(deck.file_size/1024/1024).toFixed(2)} MB</p>
