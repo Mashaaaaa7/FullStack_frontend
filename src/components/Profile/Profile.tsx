@@ -10,19 +10,16 @@ export const Profile: React.FC = () => {
     const [actionHistory, setActionHistory] = useState<ActionHistory[]>([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
-    const [editingEmail, setEditingEmail] = useState(false);
-    const [newEmail, setNewEmail] = useState('');
 
     useEffect(() => {
         loadProfileData();
-    }, []);
+    }, [user?.email]); // ✅ Зависит от пользователя
 
-    // ✅ ОДНА функция loadProfileData
     const loadProfileData = async () => {
         try {
             setLoading(true);
 
-            // Загрузить историю
+            // ✅ Загрузить историю из БД (не из localStorage)
             const historyRes = await api.actionHistory();
             if (historyRes.success && historyRes.history) {
                 setActionHistory(historyRes.history);
@@ -36,6 +33,7 @@ export const Profile: React.FC = () => {
 
         } catch (error) {
             console.error('Error loading profile:', error);
+            setMessage('⚠️ Ошибка загрузки профиля');
 
             // Создать профиль даже при ошибке
             const userProfile = createProfile();
@@ -51,23 +49,6 @@ export const Profile: React.FC = () => {
             email: user?.email || 'unknown@email.com',
             created_at: new Date().toISOString()
         };
-    };
-
-    const handleUpdateEmail = async () => {
-        if (!newEmail || newEmail === profile?.email) {
-            setEditingEmail(false);
-            return;
-        }
-
-        try {
-            setMessage('Email успешно обновлен');
-            setProfile(prev => prev ? { ...prev, email: newEmail } : null);
-            setEditingEmail(false);
-            localStorage.setItem('user_email', newEmail);
-        } catch (error) {
-            console.error('Error updating email:', error);
-            setMessage('Ошибка обновления email');
-        }
     };
 
     const formatDate = (dateString: string) => {
@@ -100,40 +81,7 @@ export const Profile: React.FC = () => {
                     <div className="info-grid">
                         <div className="info-item">
                             <label>Email:</label>
-                            {editingEmail ? (
-                                <div className="email-edit">
-                                    <input
-                                        type="email"
-                                        value={newEmail}
-                                        onChange={(e) => setNewEmail(e.target.value)}
-                                        className="email-input"
-                                        placeholder="Введите новый email"
-                                    />
-                                    <button onClick={handleUpdateEmail} className="save-btn" title="Сохранить">
-                                        💾
-                                    </button>
-                                    <button onClick={() => {
-                                        setEditingEmail(false);
-                                        setNewEmail(profile?.email || '');
-                                    }} className="cancel-btn" title="Отмена">
-                                        ❌
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="email-display">
-                                    <span>{profile?.email}</span>
-                                    <button
-                                        onClick={() => {
-                                            setEditingEmail(true);
-                                            setNewEmail(profile?.email || '');
-                                        }}
-                                        className="edit-btn"
-                                        title="Редактировать email"
-                                    >
-                                        ✏️
-                                    </button>
-                                </div>
-                            )}
+                            <span>{profile?.email}</span>
                         </div>
                         {profile?.created_at && (
                             <div className="info-item">
@@ -145,7 +93,7 @@ export const Profile: React.FC = () => {
                 </section>
 
                 <section className="action-history">
-                    <h2>📊 История действий</h2>
+                    <h2>📊 История действий ({actionHistory.length})</h2>
                     {actionHistory.length === 0 ? (
                         <div className="empty-state">
                             <p>История действий пуста</p>
@@ -156,7 +104,12 @@ export const Profile: React.FC = () => {
                             {actionHistory.map((action, index) => (
                                 <div key={action.id || index} className="history-item">
                                     <div className="action-main">
-                                        <span className="action-type">{action.action}</span>
+                                        <span className="action-type">
+                                            {action.action === 'upload' && '⬆️'}
+                                            {action.action === 'view' && '👁️'}
+                                            {action.action === 'delete' && '🗑️'}
+                                            {' '}{action.action.toUpperCase()}
+                                        </span>
                                         <span className="action-date">
                                             {formatDate(action.timestamp)}
                                         </span>
@@ -166,7 +119,7 @@ export const Profile: React.FC = () => {
                                     </div>
                                     {action.filename && (
                                         <div className="action-meta">
-                                            Файл: {action.filename}
+                                            📄 {action.filename}
                                         </div>
                                     )}
                                 </div>

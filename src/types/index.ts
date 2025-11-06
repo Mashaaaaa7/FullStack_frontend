@@ -18,24 +18,12 @@ export interface UploadResponse {
     message: string;
 }
 
-export interface CardsResponse {
-    success: boolean;
-    cards?: Card[];
-    total?: number;
-}
-
-export interface DeleteResponse {
-    success: boolean;
-    message: string;
-}
-
 export interface ActionHistory {
     id?: number;
-    action: string;
+    action: string;  // 'upload', 'view', 'delete'
     filename?: string;
-    timestamp: string;
+    timestamp: string;  // ISO string
     details?: string;
-    deck_name?: string;
 }
 
 export interface UserProfile {

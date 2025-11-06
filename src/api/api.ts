@@ -51,10 +51,13 @@ export const api = {
     },
 
     actionHistory: async (): Promise<{success: boolean; history: ActionHistory[]; total: number}> => {
-        return {
-            success: true,
-            history: [],
-            total: 0
-        };
+        const res = await fetch(`${API_BASE}/api/history`, {  // ✅ Новый endpoint
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
     },
 };
