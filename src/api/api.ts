@@ -46,12 +46,11 @@ export const api = {
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
-        // ✅ Backend возвращает МАССИВ напрямую
         return await res.json();
     },
 
     actionHistory: async (): Promise<{success: boolean; history: ActionHistory[]; total: number}> => {
-        const res = await fetch(`${API_BASE}/api/history`, {  // ✅ Новый endpoint
+        const res = await fetch(`${API_BASE}/api/history`, {
             method: 'GET',
             headers: getAuthHeaders()
         });

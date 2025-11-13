@@ -13,7 +13,7 @@ export const Profile: React.FC = () => {
 
     useEffect(() => {
         loadProfileData();
-    }, [user?.email]); // ✅ Зависит от пользователя
+    }, [user?.email]);
 
     const loadProfileData = async () => {
         try {
