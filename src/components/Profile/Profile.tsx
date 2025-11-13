@@ -19,15 +19,14 @@ export const Profile: React.FC = () => {
         try {
             setLoading(true);
 
-            // ✅ Загрузить историю из БД (не из localStorage)
             const historyRes = await api.actionHistory();
-            if (historyRes.success && historyRes.history) {
+
+            if (historyRes.success && historyRes.history && Array.isArray(historyRes.history)) {
                 setActionHistory(historyRes.history);
             } else {
                 setActionHistory([]);
             }
 
-            // Создать профиль из текущего пользователя
             const userProfile = createProfile();
             setProfile(userProfile);
 
@@ -35,7 +34,6 @@ export const Profile: React.FC = () => {
             console.error('Error loading profile:', error);
             setMessage('⚠️ Ошибка загрузки профиля');
 
-            // Создать профиль даже при ошибке
             const userProfile = createProfile();
             setProfile(userProfile);
             setActionHistory([]);
@@ -52,7 +50,11 @@ export const Profile: React.FC = () => {
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleString('ru-RU');
+        try {
+            return new Date(dateString).toLocaleString('ru-RU');
+        } catch {
+            return 'Invalid date';
+        }
     };
 
     if (loading) {
@@ -108,10 +110,8 @@ export const Profile: React.FC = () => {
                                             {action.action === 'upload' && '⬆️'}
                                             {action.action === 'view' && '👁️'}
                                             {action.action === 'delete' && '🗑️'}
+                                            {action.action === 'process' && '⚙️'}
                                             {' '}{action.action.toUpperCase()}
-                                        </span>
-                                        <span className="action-date">
-                                            {formatDate(action.timestamp)}
                                         </span>
                                     </div>
                                     <div className="action-description">
