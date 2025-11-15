@@ -76,6 +76,23 @@ export const api = {
         }
     },
 
+    // Отмена обработки карточек
+    cancelProcessing: async (fileId: number): Promise<{success: boolean; message: string}> => {
+        try {
+            console.log(`🔴 Отправляю запрос отмены для fileId=${fileId}...`);
+            const res = await fetch(`${API_BASE}/api/pdf/cancel-processing/${fileId}`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+            const data = await handleResponse(res);
+            console.log(`✅ Запрос отмены отправлен:`, data);
+            return data;
+        } catch (error) {
+            console.error('cancelProcessing error:', error);
+            throw error;
+        }
+    },
+
     getCards: async (fileId: number): Promise<{success: boolean; cards: Card[]; total: number}> => {
         try {
             const res = await fetch(`${API_BASE}/api/pdf/cards/${fileId}`, {

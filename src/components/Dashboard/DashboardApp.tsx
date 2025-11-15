@@ -16,8 +16,9 @@ const DashboardApp: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [processingStatus, setProcessingStatus] = useState<{[key: number]: string}>({});
+    const [generationConfig, setGenerationConfig] = useState({ maxCards: 10 });
+    const [generatingFileId, setGeneratingFileId] = useState<number | null>(null);
 
-    // Загружаем PDF с сервера при монтировании и смене пользователя
     useEffect(() => {
         if (user?.email) {
             loadDecksFromServer();
@@ -32,10 +33,33 @@ const DashboardApp: React.FC = () => {
             if (response.success && response.pdfs) {
                 setDecks(response.pdfs);
                 console.log(`✅ Загружено ${response.pdfs.length} PDF файлов`);
+
+                // ✅ Проверяем статусы ПОСЛЕ загрузки списка
+                checkStatusesForLoadedDecks(response.pdfs);
             }
         } catch (error) {
             console.error('❌ Ошибка загрузки PDF:', error);
             setMessage('❌ Не удалось загрузить список PDF');
+        }
+    };
+
+    // ✅ НОВАЯ ФУНКЦИЯ: быстро проверяет только активные обработки
+    const checkStatusesForLoadedDecks = async (decksList: DeckWithId[]) => {
+        for (const deck of decksList) {
+            try {
+                const statusRes = await api.getProcessingStatus(deck.id);
+
+                if (statusRes.status === 'processing') {
+                    setProcessingStatus(prev => ({
+                        ...prev,
+                        [deck.id]: 'processing'
+                    }));
+                    setGeneratingFileId(deck.id);
+                    console.log(`⏳ Обнаружена обработка для файла ${deck.id}`);
+                }
+            } catch (error) {
+                console.error(`⚠️ Ошибка проверки статуса для ${deck.id}:`, error);
+            }
         }
     };
 
@@ -52,7 +76,8 @@ const DashboardApp: React.FC = () => {
 
             console.log('✅ Файл загружен, обновляю список...');
 
-            // Перезагружаем список PDF с сервера
+            // ✅ Добавляем задержку перед обновлением списка
+            await new Promise(resolve => setTimeout(resolve, 500));
             await loadDecksFromServer();
 
             setMessage(`✅ ${res.message}`);
@@ -68,27 +93,48 @@ const DashboardApp: React.FC = () => {
     const handleCreateCards = async (deck: DeckWithId) => {
         setLoading(true);
         setMessage('');
+        setGeneratingFileId(deck.id);
 
         try {
             setProcessingStatus(prev => ({...prev, [deck.id]: 'processing'}));
-            setMessage(`🔄 Начинаем создание карточек для "${deck.name}"...`);
+            setMessage(`🔄 Начинаем создание карточек для "${deck.name}" (макс. ${generationConfig.maxCards})...`);
 
             console.log(`🔄 Запускаю обработку PDF ${deck.id}...`);
-            await api.processCards(deck.id);
+            await api.processCards(deck.id, generationConfig.maxCards);
 
             setMessage(`⏳ Генерирую карточки... подождите...`);
 
-            // Ждём обработки с периодической проверкой статуса
             let attempts = 0;
-            const maxAttempts = 30; // Максимум 60 секунд
+            const maxAttempts = 120;
 
             while (attempts < maxAttempts) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
 
                 const statusRes = await api.getProcessingStatus(deck.id);
-                console.log(`📊 Статус обработки: ${statusRes.status}`);
+                console.log(`📊 Статус: ${statusRes.status}, карточек: ${statusRes.cards_count}`);
 
                 if (statusRes.status === 'completed') {
+                    console.log(`✅ Обработка завершена, загружаю карточки...`);
+
+                    const cardsResponse = await api.getCards(deck.id);
+                    console.log(`🎴 Получил карточки:`, cardsResponse);
+
+                    if (cardsResponse.success && cardsResponse.cards && cardsResponse.cards.length > 0) {
+                        setCards(cardsResponse.cards);
+                        setSelectedDeck(deck);
+                        setProcessingStatus(prev => ({...prev, [deck.id]: 'completed'}));
+                        setMessage(`✅ Загружено ${cardsResponse.cards.length} карточек`);
+                        console.log(`✅ Карточки загружены: ${cardsResponse.cards.length} шт`);
+                    } else {
+                        setMessage('❌ Карточки не найдены');
+                        setProcessingStatus(prev => ({...prev, [deck.id]: 'failed'}));
+                    }
+
+                    break;
+
+                } else if (statusRes.status === 'cancelled') {
+                    setMessage('⛔ Генерация отменена');
+                    setProcessingStatus(prev => ({...prev, [deck.id]: 'cancelled'}));
                     break;
                 } else if (statusRes.status === 'failed') {
                     throw new Error('Ошибка при обработке PDF на сервере');
@@ -97,25 +143,30 @@ const DashboardApp: React.FC = () => {
                 attempts++;
             }
 
-            console.log(`✅ Получаю карточки для ${deck.id}...`);
-            const cardsResponse = await api.getCards(deck.id);
-
-            if (cardsResponse.success && cardsResponse.cards && cardsResponse.cards.length > 0) {
-                setCards(cardsResponse.cards);
-                setSelectedDeck(deck);
-                setProcessingStatus(prev => ({...prev, [deck.id]: 'completed'}));
-                setMessage(`✅ Загружено ${cardsResponse.cards.length} карточек`);
-                console.log(`✅ Карточки загружены: ${cardsResponse.cards.length} шт`);
-            } else {
-                setMessage('❌ Карточки не найдены. Попробуйте позже.');
-                setProcessingStatus(prev => ({...prev, [deck.id]: 'failed'}));
+            if (attempts >= maxAttempts) {
+                throw new Error('Время ожидания истекло');
             }
+
         } catch (err: any) {
-            console.error('❌ Ошибка при создании карточек:', err);
+            console.error('❌ Ошибка:', err);
             setMessage(`❌ ${err.message}`);
             setProcessingStatus(prev => ({...prev, [deck.id]: 'failed'}));
         } finally {
             setLoading(false);
+            setGeneratingFileId(null);
+        }
+    };
+
+    const handleCancelGeneration = async (fileId: number) => {
+        try {
+            console.log(`⛔ Отмена генерации для файла ${fileId}...`);
+            await api.cancelProcessing(fileId);
+            setMessage('⛔ Генерация отменена');
+            setProcessingStatus(prev => ({...prev, [fileId]: 'cancelled'}));
+            setGeneratingFileId(null);
+        } catch (err: any) {
+            console.error('❌ Ошибка отмены:', err);
+            setMessage(`❌ ${err.message}`);
         }
     };
 
@@ -128,7 +179,6 @@ const DashboardApp: React.FC = () => {
             console.log(`🗑️ Удаляю PDF ${deck.id}...`);
             await api.deleteFile(deck.id);
 
-            // Удаляем из локального состояния
             setDecks(decks.filter(d => d.id !== deck.id));
             setMessage('✅ Файл удален');
             console.log('✅ Файл удалён успешно');
@@ -159,13 +209,15 @@ const DashboardApp: React.FC = () => {
                     <p>Пользователь: {user?.email}</p>
                     <button
                         onClick={loadDecksFromServer}
+                        disabled={loading}
                         style={{
                             padding: '0.5rem 1rem',
                             background: '#667eea',
                             color: 'white',
                             border: 'none',
                             borderRadius: '4px',
-                            cursor: 'pointer'
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            opacity: loading ? 0.6 : 1
                         }}
                     >
                         🔄 Обновить
@@ -188,10 +240,28 @@ const DashboardApp: React.FC = () => {
                             {loading ? 'Загрузка...' : 'Выберите PDF'}
                         </label>
                     </div>
+
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '6px' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                            📊 Максимум карточек: {generationConfig.maxCards}
+                        </label>
+                        <input
+                            type="range"
+                            min="1"
+                            max="50"
+                            value={generationConfig.maxCards}
+                            onChange={(e) => setGenerationConfig({ maxCards: parseInt(e.target.value) })}
+                            style={{ width: '100%' }}
+                            disabled={loading}
+                        />
+                        <p style={{ fontSize: '0.9rem', color: '#666', margin: '0.5rem 0 0 0' }}>
+                            Выберите количество карточек (1-50)
+                        </p>
+                    </div>
                 </section>
 
                 {message && (
-                    <div className={`message ${message.includes('❌') ? 'error' : 'success'}`}>
+                    <div className={`message ${message.includes('❌') ? 'error' : message.includes('⛔') ? 'warning' : 'success'}`}>
                         {message}
                     </div>
                 )}
@@ -210,26 +280,46 @@ const DashboardApp: React.FC = () => {
                                             {processingStatus[deck.id] === 'processing' && '⏳ Обработка...'}
                                             {processingStatus[deck.id] === 'completed' && '✅ Готово'}
                                             {processingStatus[deck.id] === 'failed' && '❌ Ошибка'}
+                                            {processingStatus[deck.id] === 'cancelled' && '⛔ Отменено'}
                                         </p>
                                     )}
                                 </div>
                                 <div className="deck-actions">
-                                    <button
-                                        onClick={() => handleCreateCards(deck)}
-                                        disabled={loading || processingStatus[deck.id] === 'processing'}
-                                        className="create-cards-btn"
-                                    >
-                                        {processingStatus[deck.id] === 'processing'
-                                            ? '⏳ Создается...'
-                                            : 'Создать карточки'}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteDeck(deck)}
-                                        disabled={loading}
-                                        className="delete-btn"
-                                    >
-                                        🗑️ Удалить
-                                    </button>
+                                    {generatingFileId === deck.id ? (
+                                        <button
+                                            onClick={() => handleCancelGeneration(deck.id)}
+                                            style={{
+                                                background: '#ff6b6b',
+                                                color: 'white',
+                                                border: 'none',
+                                                padding: '0.5rem 1rem',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                width: '100%'
+                                            }}
+                                        >
+                                            ⛔ Остановить
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                onClick={() => handleCreateCards(deck)}
+                                                disabled={loading || processingStatus[deck.id] === 'processing'}
+                                                className="create-cards-btn"
+                                            >
+                                                {processingStatus[deck.id] === 'processing'
+                                                    ? '⏳ Создается...'
+                                                    : 'Создать карточки'}
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteDeck(deck)}
+                                                disabled={loading}
+                                                className="delete-btn"
+                                            >
+                                                🗑️ Удалить
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         ))}

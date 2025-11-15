@@ -45,16 +45,7 @@ export const Profile: React.FC = () => {
     const createProfile = (): UserProfile => {
         return {
             email: user?.email || 'unknown@email.com',
-            created_at: new Date().toISOString()
         };
-    };
-
-    const formatDate = (dateString: string) => {
-        try {
-            return new Date(dateString).toLocaleString('ru-RU');
-        } catch {
-            return 'Invalid date';
-        }
     };
 
     if (loading) {
@@ -85,12 +76,6 @@ export const Profile: React.FC = () => {
                             <label>Email:</label>
                             <span>{profile?.email}</span>
                         </div>
-                        {profile?.created_at && (
-                            <div className="info-item">
-                                <label>Дата регистрации:</label>
-                                <span>{formatDate(profile.created_at)}</span>
-                            </div>
-                        )}
                     </div>
                 </section>
 
