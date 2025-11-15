@@ -2,7 +2,6 @@ export interface Deck {
     id: number;
     name: string;
     file_size: number;
-    created_at: string;
 }
 
 export interface Card {
@@ -11,7 +10,6 @@ export interface Card {
     answer: string;
     context?: string;
     source?: string;
-    created_at?: string;
 }
 
 export interface UploadResponse {
@@ -31,5 +29,4 @@ export interface ActionHistory {
 
 export interface UserProfile {
     email: string;
-    created_at: string;
 }
