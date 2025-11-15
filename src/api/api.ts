@@ -1,5 +1,5 @@
 import { UploadResponse, ActionHistory, Card } from '../types';
-
+//
 const API_BASE = 'http://127.0.0.1:8000';
 
 const getAuthHeaders = () => {
@@ -51,15 +51,6 @@ export const api = {
         const res = await fetch(
             `${API_BASE}/api/pdf/processing-status/${fileId}`,
             { method: 'GET', headers: getAuthHeaders() }
-        );
-        return await handleResponse(res);
-    },
-
-    // ✅ ДОБАВЬТЕ ЭТУ ФУНКЦИЮ
-    cancelProcessing: async (fileId: number): Promise<{success: boolean; message: string}> => {
-        const res = await fetch(
-            `${API_BASE}/api/pdf/cancel-processing/${fileId}`,
-            { method: 'POST', headers: getAuthHeaders() }
         );
         return await handleResponse(res);
     },
