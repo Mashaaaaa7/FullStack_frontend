@@ -103,10 +103,9 @@ const DashboardApp: React.FC = () => {
         }
     };
 
-    // ✅ Ждёт завершения обработки PDF
     const waitForProcessing = async (deck: DeckWithId) => {
         let attempts = 0;
-        const maxAttempts = 120; // 4 минуты
+        const maxAttempts = 600;
 
         while (attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -173,7 +172,6 @@ const DashboardApp: React.FC = () => {
         }
     };
 
-    // ✅ Создает карточки
     const handleCreateCards = async (deck: DeckWithId) => {
         setLoading(true);
         setMessage('');
@@ -181,18 +179,15 @@ const DashboardApp: React.FC = () => {
 
         try {
             setProcessingStatus(prev => ({...prev, [deck.id]: 'processing'}));
-            setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
+            setMessage(`🔄 Генерирую до ${maxCards} карточек...`);
 
-            console.log(`🔄 Запускаю обработку PDF ${deck.id}...`);
+            console.log(`🔄 Запускаю: file_id=${deck.id}, max_cards=${maxCards}`);
             await api.processCards(deck.id, maxCards);
 
-            // ✅ Ждём завершения обработки
             await waitForProcessing(deck);
         } catch (err: any) {
-            console.error('❌ Ошибка:', err);
             setMessage(`❌ ${err.message}`);
             setProcessingStatus(prev => ({...prev, [deck.id]: 'failed'}));
-            setProcessingFileId(null);
         } finally {
             setLoading(false);
         }
@@ -373,6 +368,54 @@ const DashboardApp: React.FC = () => {
                         <div className="cards-grid">
                             {cards.map((card, index) => (
                                 <div key={card.id || index} className="flashcard">
+                                    <div className="card-front">
+                                        <h3>Вопрос</h3>
+                                        <p>{card.question}</p>
+                                    </div>
+                                    <div className="card-back">
+                                        <h3>Ответ</h3>
+                                        <p>{card.answer}</p>
+                                    </div>
+                                    <div className="card-front">
+                                        <h3>Вопрос</h3>
+                                        <p>{card.question}</p>
+                                    </div>
+                                    <div className="card-back">
+                                        <h3>Ответ</h3>
+                                        <p>{card.answer}</p>
+                                    </div>
+                                    <div className="card-front">
+                                        <h3>Вопрос</h3>
+                                        <p>{card.question}</p>
+                                    </div>
+                                    <div className="card-back">
+                                        <h3>Ответ</h3>
+                                        <p>{card.answer}</p>
+                                    </div>
+                                    <div className="card-front">
+                                        <h3>Вопрос</h3>
+                                        <p>{card.question}</p>
+                                    </div>
+                                    <div className="card-back">
+                                        <h3>Ответ</h3>
+                                        <p>{card.answer}</p>
+                                    </div>
+                                    <div className="card-front">
+                                        <h3>Вопрос</h3>
+                                        <p>{card.question}</p>
+                                    </div>
+                                    <div className="card-back">
+                                        <h3>Ответ</h3>
+                                        <p>{card.answer}</p>
+                                    </div>
+                                    <div className="card-front">
+                                        <h3>Вопрос</h3>
+                                        <p>{card.question}</p>
+                                    </div>
+                                    <div className="card-back">
+                                        <h3>Ответ</h3>
+                                        <p>{card.answer}</p>
+                                    </div>
                                     <div className="card-front">
                                         <h3>Вопрос</h3>
                                         <p>{card.question}</p>
