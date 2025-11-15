@@ -24,7 +24,7 @@ export const Register: React.FC = () => {
             const data = await res.json();
             if (data.access_token) {
                 login(data.access_token, email);
-                navigate('/app'); // Редирект на /app после регистрации
+                navigate('/app');
             } else {
                 setMessage(data.detail || 'Ошибка регистрации');
             }

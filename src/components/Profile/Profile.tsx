@@ -1,54 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Context/AuthContext';
 import { api } from '../../api/api';
-import { UserProfile, ActionHistory } from '../../types';
+import { ActionHistory } from '../../types';
 import './Profile.css';
 
 export const Profile: React.FC = () => {
     const { user } = useAuth();
-    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [actionHistory, setActionHistory] = useState<ActionHistory[]>([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
 
     useEffect(() => {
-        loadProfileData();
-    }, [user?.email]); // ✅ Зависит от пользователя
+        loadHistory();
+    }, [user?.email]);
 
-    const loadProfileData = async () => {
+    const loadHistory = async () => {
         try {
             setLoading(true);
-
-            // ✅ Загрузить историю из БД (не из localStorage)
             const historyRes = await api.actionHistory();
-            if (historyRes.success && historyRes.history) {
+
+            if (historyRes.success && Array.isArray(historyRes.history)) {
                 setActionHistory(historyRes.history);
-            } else {
-                setActionHistory([]);
             }
-
-            // Создать профиль из текущего пользователя
-            const userProfile = createProfile();
-            setProfile(userProfile);
-
         } catch (error) {
-            console.error('Error loading profile:', error);
-            setMessage('⚠️ Ошибка загрузки профиля');
-
-            // Создать профиль даже при ошибке
-            const userProfile = createProfile();
-            setProfile(userProfile);
-            setActionHistory([]);
+            console.error('Ошибка:', error);
+            setMessage('⚠️ Ошибка загрузки истории');
         } finally {
             setLoading(false);
         }
-    };
-
-    const createProfile = (): UserProfile => {
-        return {
-            email: user?.email || 'unknown@email.com',
-            created_at: new Date().toISOString()
-        };
     };
 
     const formatDate = (dateString: string) => {
@@ -56,24 +35,16 @@ export const Profile: React.FC = () => {
     };
 
     if (loading) {
-        return (
-            <div className="profile-container">
-                <div className="loading">Загрузка профиля...</div>
-            </div>
-        );
+        return <div className="profile-container"><div className="loading">Загрузка...</div></div>;
     }
 
     return (
         <div className="profile-container">
             <header className="profile-header">
-                <h1>👤 Профиль пользователя</h1>
+                <h1>👤 Профиль</h1>
             </header>
 
-            {message && (
-                <div className={`message ${message.includes('Ошибка') ? 'error' : 'success'}`}>
-                    {message}
-                </div>
-            )}
+            {message && <div className={`message error`}>{message}</div>}
 
             <div className="profile-content">
                 <section className="profile-info">
@@ -81,14 +52,8 @@ export const Profile: React.FC = () => {
                     <div className="info-grid">
                         <div className="info-item">
                             <label>Email:</label>
-                            <span>{profile?.email}</span>
+                            <span>{user?.email}</span>
                         </div>
-                        {profile?.created_at && (
-                            <div className="info-item">
-                                <label>Дата регистрации:</label>
-                                <span>{formatDate(profile.created_at)}</span>
-                            </div>
-                        )}
                     </div>
                 </section>
 
@@ -96,32 +61,23 @@ export const Profile: React.FC = () => {
                     <h2>📊 История действий ({actionHistory.length})</h2>
                     {actionHistory.length === 0 ? (
                         <div className="empty-state">
-                            <p>История действий пуста</p>
-                            <p className="empty-subtitle">Здесь будут отображаться ваши действия с карточками</p>
+                            <p>История пуста</p>
                         </div>
                     ) : (
                         <div className="history-list">
                             {actionHistory.map((action, index) => (
                                 <div key={action.id || index} className="history-item">
-                                    <div className="action-main">
-                                        <span className="action-type">
-                                            {action.action === 'upload' && '⬆️'}
-                                            {action.action === 'view' && '👁️'}
-                                            {action.action === 'delete' && '🗑️'}
-                                            {' '}{action.action.toUpperCase()}
-                                        </span>
-                                        <span className="action-date">
-                                            {formatDate(action.timestamp)}
-                                        </span>
-                                    </div>
-                                    <div className="action-description">
-                                        {action.details}
-                                    </div>
-                                    {action.filename && (
-                                        <div className="action-meta">
-                                            📄 {action.filename}
-                                        </div>
-                                    )}
+                                    <span className="action-type">
+                                        {action.action === 'upload' && '⬆️'}
+                                        {action.action === 'delete' && '🗑️'}
+                                        {action.action === 'process' && '⚙️'}
+                                        {' '}{action.action.toUpperCase()}
+                                    </span>
+                                    <span>{action.details}</span>
+                                    {action.filename && <span>📄 {action.filename}</span>}
+                                    <span style={{fontSize: '0.8rem', color: '#999'}}>
+                                        {formatDate(action.timestamp)}
+                                    </span>
                                 </div>
                             ))}
                         </div>

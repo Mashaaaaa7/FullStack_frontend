@@ -4,48 +4,36 @@ import { api } from '../../api/api';
 import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
 
+interface DeckWithId extends Deck {
+    id: number;
+}
+
 const DashboardApp: React.FC = () => {
     const { user } = useAuth();
-    const [decks, setDecks] = useState<Deck[]>([]);
+    const [decks, setDecks] = useState<DeckWithId[]>([]);
     const [cards, setCards] = useState<Card[]>([]);
-    const [selectedDeck, setSelectedDeck] = useState<string>('');
+    const [selectedDeck, setSelectedDeck] = useState<DeckWithId | null>(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
-
-    // ✅ Получить ключ для текущего пользователя
-    const getUserFileKey = () => `files_${user?.email}`;
-
-    useEffect(() => {
-        const savedCards = localStorage.getItem(`cards_${user?.email}`);
-        const savedSelectedDeck = localStorage.getItem(`deck_${user?.email}`);
-
-        if (savedCards && savedSelectedDeck) {
-            try {
-                setCards(JSON.parse(savedCards));
-                setSelectedDeck(savedSelectedDeck);
-            } catch (error) {
-                console.error('Error loading saved cards:', error);
-            }
-        }
-
-        loadDecks();
-    }, [user?.email]); // ✅ Зависит от email пользователя
+    const [processingStatus, setProcessingStatus] = useState<{[key: number]: string}>({});
+    const [maxCards, setMaxCards] = useState(10);
+    const [processingFileId, setProcessingFileId] = useState<number | null>(null);
 
     useEffect(() => {
-        if (cards.length > 0 && selectedDeck) {
-            localStorage.setItem(`cards_${user?.email}`, JSON.stringify(cards));
-            localStorage.setItem(`deck_${user?.email}`, selectedDeck);
+        if (user?.email) {
+            loadDecksFromServer();
         }
-    }, [cards, selectedDeck, user?.email]);
+    }, [user?.email]);
 
-    const loadDecks = async () => {
+    const loadDecksFromServer = async () => {
         try {
-            const saved = localStorage.getItem(getUserFileKey()) || '[]';
-            const files = JSON.parse(saved);
-            setDecks(files);
+            const response = await api.listPDFs();
+            if (response.success && response.pdfs) {
+                setDecks(response.pdfs);
+            }
         } catch (error) {
-            console.error('Load decks error:', error);
-            setDecks([]);
+            console.error('❌ Ошибка загрузки:', error);
+            setMessage('❌ Не удалось загрузить список PDF');
         }
     };
 
@@ -57,22 +45,9 @@ const DashboardApp: React.FC = () => {
         setMessage('');
 
         try {
-            const res = await api.uploadPDF(file);
-
-            const newFile = {
-                id: res.file_id || Date.now(),
-                name: res.filename || file.name,
-                file_size: file.size,
-                created_at: new Date().toISOString()
-            };
-
-            const saved = localStorage.getItem(getUserFileKey()) || '[]';
-            const files = JSON.parse(saved);
-            files.push(newFile);
-            localStorage.setItem(getUserFileKey(), JSON.stringify(files));
-
-            setDecks(files);
-            setMessage('✅ ' + res.message);
+            await api.uploadPDF(file);
+            await loadDecksFromServer();
+            setMessage('✅ Файл загружен успешно');
             e.target.value = '';
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
@@ -81,47 +56,65 @@ const DashboardApp: React.FC = () => {
         }
     };
 
-    const handleCreateCards = async (deckName: string) => {
+    const handleCreateCards = async (deck: DeckWithId) => {
         setLoading(true);
         setMessage('');
+        setProcessingFileId(deck.id);
 
         try {
-            const cards = await api.createCards(deckName);
+            setProcessingStatus(prev => ({...prev, [deck.id]: 'processing'}));
+            setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
 
-            // ✅ Backend возвращает МАССИВ напрямую, не объект
-            if (Array.isArray(cards) && cards.length > 0) {
-                setCards(cards);
-                setSelectedDeck(deckName);
-                setMessage(`✅ Загружено ${cards.length} карточек`);
-            } else {
-                setMessage('❌ Карточки не найдены');
+            await api.processCards(deck.id, maxCards);
+
+            // Ждём завершения обработки
+            let attempts = 0;
+            while (attempts < 120) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                const statusRes = await api.getProcessingStatus(deck.id);
+
+                if (statusRes.status === 'completed') {
+                    const cardsResponse = await api.getCards(deck.id);
+
+                    if (cardsResponse.cards && cardsResponse.cards.length > 0) {
+                        setCards(cardsResponse.cards);
+                        setSelectedDeck(deck);
+                        setProcessingStatus(prev => ({...prev, [deck.id]: 'completed'}));
+                        setMessage(`✅ Загружено ${cardsResponse.cards.length} карточек`);
+                    } else {
+                        setMessage('❌ Карточки не созданы');
+                    }
+                    break;
+                } else if (statusRes.status === 'failed') {
+                    throw new Error('Ошибка при обработке');
+                }
+
+                attempts++;
             }
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
+            setProcessingStatus(prev => ({...prev, [deck.id]: 'failed'}));
         } finally {
             setLoading(false);
+            setProcessingFileId(null);
         }
     };
 
-    const handleDeleteDeck = async (deckName: string) => {
-        if (!window.confirm(`Удалить ${deckName}?`)) return;
+    const handleDeleteDeck = async (deck: DeckWithId) => {
+        if (!window.confirm(`Удалить ${deck.name}?`)) return;
 
         setLoading(true);
 
         try {
-            const saved = localStorage.getItem(getUserFileKey()) || '[]';
-            let files = JSON.parse(saved);
-            files = files.filter((f: Deck) => f.name !== deckName);
-            localStorage.setItem(getUserFileKey(), JSON.stringify(files));
-
+            await api.deleteFile(deck.id);
+            // ✅ Локально удаляем НАВСЕГДА
+            setDecks(decks.filter(d => d.id !== deck.id));
             setMessage('✅ Файл удален');
-            await loadDecks();
 
-            if (selectedDeck === deckName) {
+            if (selectedDeck?.id === deck.id) {
                 setCards([]);
-                setSelectedDeck('');
-                localStorage.removeItem(`cards_${user?.email}`);
-                localStorage.removeItem(`deck_${user?.email}`);
+                setSelectedDeck(null);
             }
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
@@ -132,10 +125,7 @@ const DashboardApp: React.FC = () => {
 
     const handleClearCards = () => {
         setCards([]);
-        setSelectedDeck('');
-        localStorage.removeItem(`cards_${user?.email}`);
-        localStorage.removeItem(`deck_${user?.email}`);
-        setMessage('Карточки очищены');
+        setSelectedDeck(null);
     };
 
     return (
@@ -162,34 +152,55 @@ const DashboardApp: React.FC = () => {
                             {loading ? 'Загрузка...' : 'Выберите PDF'}
                         </label>
                     </div>
+
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '6px' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                            📊 Максимум карточек: {maxCards}
+                        </label>
+                        <input
+                            type="range"
+                            min="1"
+                            max="50"
+                            value={maxCards}
+                            onChange={(e) => setMaxCards(parseInt(e.target.value))}
+                            style={{ width: '100%' }}
+                            disabled={loading}
+                        />
+                    </div>
                 </section>
 
                 {message && (
-                    <div className={`message ${message.includes('Ошибка') ? 'error' : 'success'}`}>
+                    <div className={`message ${message.includes('❌') ? 'error' : 'success'}`}>
                         {message}
                     </div>
                 )}
 
                 <section className="decks-section">
-                    <h2>📁 Ваши PDF файлы ({decks.length})</h2>
+                    <h2>📁 Ваши PDF ({decks.length})</h2>
                     <div className="decks-grid">
                         {decks.map(deck => (
                             <div key={deck.id} className="deck-card">
                                 <div className="deck-info">
                                     <h3>{deck.name}</h3>
-                                    <p>Размер: {(deck.file_size/1024/1024).toFixed(2)} MB</p>
-                                    <p>Загружен: {new Date(deck.created_at).toLocaleString('ru-RU')}</p>
+                                    <p>Размер: {(deck.file_size / 1024 / 1024).toFixed(2)} MB</p>
+                                    {processingStatus[deck.id] && (
+                                        <p className="status-badge">
+                                            {processingStatus[deck.id] === 'processing' && '⏳ Обработка...'}
+                                            {processingStatus[deck.id] === 'completed' && '✅ Готово'}
+                                            {processingStatus[deck.id] === 'failed' && '❌ Ошибка'}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="deck-actions">
                                     <button
-                                        onClick={() => handleCreateCards(deck.name)}
-                                        disabled={loading}
+                                        onClick={() => handleCreateCards(deck)}
+                                        disabled={loading || processingFileId === deck.id}
                                         className="create-cards-btn"
                                     >
-                                        Создать карточки
+                                        {processingFileId === deck.id ? '⏳ Создается...' : 'Создать карточки'}
                                     </button>
                                     <button
-                                        onClick={() => handleDeleteDeck(deck.name)}
+                                        onClick={() => handleDeleteDeck(deck)}
                                         disabled={loading}
                                         className="delete-btn"
                                     >
@@ -198,25 +209,15 @@ const DashboardApp: React.FC = () => {
                                 </div>
                             </div>
                         ))}
-                        {decks.length === 0 && (
-                            <div className="empty-state">
-                                <p>Нет загруженных PDF</p>
-                            </div>
-                        )}
+                        {decks.length === 0 && <div className="empty-state"><p>Нет PDF</p></div>}
                     </div>
                 </section>
 
-                {cards.length > 0 && (
+                {cards.length > 0 && selectedDeck && (
                     <section className="cards-section">
                         <div className="cards-header">
-                            <h2>🎴 Карточки из "{selectedDeck}" ({cards.length})</h2>
-                            <button
-                                onClick={handleClearCards}
-                                className="clear-cards-btn"
-                                title="Очистить карточки"
-                            >
-                                🗑️ Очистить
-                            </button>
+                            <h2>🎴 Карточки ({cards.length})</h2>
+                            <button onClick={handleClearCards} className="clear-cards-btn">🗑️ Очистить</button>
                         </div>
                         <div className="cards-grid">
                             {cards.map((card, index) => (
@@ -236,9 +237,7 @@ const DashboardApp: React.FC = () => {
                 )}
             </main>
 
-            <footer className="app-footer">
-                Учебные карточки из PDF • Версия 1.0.0
-            </footer>
+            <footer className="app-footer">Учебные карточки из PDF • v1.0</footer>
         </div>
     );
 };
