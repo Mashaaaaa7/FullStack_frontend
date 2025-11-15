@@ -17,18 +17,25 @@ const DashboardApp: React.FC = () => {
     const [message, setMessage] = useState('');
     const [processingStatus, setProcessingStatus] = useState<{[key: number]: string}>({});
 
+    // Загружаем PDF с сервера при монтировании и смене пользователя
     useEffect(() => {
-        loadDecks();
+        if (user?.email) {
+            loadDecksFromServer();
+        }
     }, [user?.email]);
 
-    const loadDecks = async () => {
+    const loadDecksFromServer = async () => {
         try {
-            const saved = localStorage.getItem(`files_${user?.email}`) || '[]';
-            const files = JSON.parse(saved);
-            setDecks(files);
+            console.log('📂 Загружаю список PDF с сервера...');
+            const response = await api.listPDFs();
+
+            if (response.success && response.pdfs) {
+                setDecks(response.pdfs);
+                console.log(`✅ Загружено ${response.pdfs.length} PDF файлов`);
+            }
         } catch (error) {
-            console.error('Load decks error:', error);
-            setDecks([]);
+            console.error('❌ Ошибка загрузки PDF:', error);
+            setMessage('❌ Не удалось загрузить список PDF');
         }
     };
 
@@ -40,27 +47,19 @@ const DashboardApp: React.FC = () => {
         setMessage('');
 
         try {
+            console.log(`📤 Загружаю файл: ${file.name}`);
             const res = await api.uploadPDF(file);
 
-            const newFile: DeckWithId = {
-                id: res.file_id,
-                name: res.filename || file.name,
-                file_size: file.size,
-                created_at: new Date().toISOString()
-            };
+            console.log('✅ Файл загружен, обновляю список...');
 
-            setDecks([...decks, newFile]);
-
-            const saved = localStorage.getItem(`files_${user?.email}`) || '[]';
-            const files = JSON.parse(saved);
-            files.push(newFile);
-            localStorage.setItem(`files_${user?.email}`, JSON.stringify(files));
+            // Перезагружаем список PDF с сервера
+            await loadDecksFromServer();
 
             setMessage(`✅ ${res.message}`);
             e.target.value = '';
         } catch (err: any) {
+            console.error('❌ Ошибка загрузки:', err);
             setMessage(`❌ ${err.message}`);
-            console.error('Upload error:', err);
         } finally {
             setLoading(false);
         }
@@ -74,11 +73,31 @@ const DashboardApp: React.FC = () => {
             setProcessingStatus(prev => ({...prev, [deck.id]: 'processing'}));
             setMessage(`🔄 Начинаем создание карточек для "${deck.name}"...`);
 
+            console.log(`🔄 Запускаю обработку PDF ${deck.id}...`);
             await api.processCards(deck.id);
 
             setMessage(`⏳ Генерирую карточки... подождите...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
 
+            // Ждём обработки с периодической проверкой статуса
+            let attempts = 0;
+            const maxAttempts = 30; // Максимум 60 секунд
+
+            while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                const statusRes = await api.getProcessingStatus(deck.id);
+                console.log(`📊 Статус обработки: ${statusRes.status}`);
+
+                if (statusRes.status === 'completed') {
+                    break;
+                } else if (statusRes.status === 'failed') {
+                    throw new Error('Ошибка при обработке PDF на сервере');
+                }
+
+                attempts++;
+            }
+
+            console.log(`✅ Получаю карточки для ${deck.id}...`);
             const cardsResponse = await api.getCards(deck.id);
 
             if (cardsResponse.success && cardsResponse.cards && cardsResponse.cards.length > 0) {
@@ -86,14 +105,15 @@ const DashboardApp: React.FC = () => {
                 setSelectedDeck(deck);
                 setProcessingStatus(prev => ({...prev, [deck.id]: 'completed'}));
                 setMessage(`✅ Загружено ${cardsResponse.cards.length} карточек`);
+                console.log(`✅ Карточки загружены: ${cardsResponse.cards.length} шт`);
             } else {
                 setMessage('❌ Карточки не найдены. Попробуйте позже.');
                 setProcessingStatus(prev => ({...prev, [deck.id]: 'failed'}));
             }
         } catch (err: any) {
+            console.error('❌ Ошибка при создании карточек:', err);
             setMessage(`❌ ${err.message}`);
             setProcessingStatus(prev => ({...prev, [deck.id]: 'failed'}));
-            console.error('Card creation error:', err);
         } finally {
             setLoading(false);
         }
@@ -105,19 +125,21 @@ const DashboardApp: React.FC = () => {
         setLoading(true);
 
         try {
+            console.log(`🗑️ Удаляю PDF ${deck.id}...`);
             await api.deleteFile(deck.id);
 
+            // Удаляем из локального состояния
             setDecks(decks.filter(d => d.id !== deck.id));
-
             setMessage('✅ Файл удален');
+            console.log('✅ Файл удалён успешно');
 
             if (selectedDeck?.id === deck.id) {
                 setCards([]);
                 setSelectedDeck(null);
             }
         } catch (err: any) {
+            console.error('❌ Ошибка удаления:', err);
             setMessage(`❌ ${err.message}`);
-            console.error('Delete error:', err);
         } finally {
             setLoading(false);
         }
@@ -135,6 +157,19 @@ const DashboardApp: React.FC = () => {
                 <h1>🎴 Учебные карточки из PDF</h1>
                 <div className="header-controls">
                     <p>Пользователь: {user?.email}</p>
+                    <button
+                        onClick={loadDecksFromServer}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            background: '#667eea',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        🔄 Обновить
+                    </button>
                 </div>
             </header>
 

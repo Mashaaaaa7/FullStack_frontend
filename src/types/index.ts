@@ -6,9 +6,12 @@ export interface Deck {
 }
 
 export interface Card {
+    id?: number;
     question: string;
     answer: string;
-    id?: number;
+    context?: string;
+    source?: string;
+    created_at?: string;
 }
 
 export interface UploadResponse {
