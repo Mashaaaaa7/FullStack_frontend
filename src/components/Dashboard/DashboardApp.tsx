@@ -8,11 +8,6 @@ interface DeckWithId extends Deck {
     id: number;
 }
 
-interface SavedDeckState {
-    deck: DeckWithId;
-    cards: Card[];
-}
-
 const DashboardApp: React.FC = () => {
     const { user } = useAuth();
     const [decks, setDecks] = useState<DeckWithId[]>([]);
@@ -113,13 +108,13 @@ const DashboardApp: React.FC = () => {
 
         try {
             await api.deleteFile(deck.id);
+            // ✅ Локально удаляем НАВСЕГДА
             setDecks(decks.filter(d => d.id !== deck.id));
             setMessage('✅ Файл удален');
 
             if (selectedDeck?.id === deck.id) {
                 setCards([]);
                 setSelectedDeck(null);
-                localStorage.removeItem(`deck_state_${user?.email}`);
             }
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
@@ -131,7 +126,6 @@ const DashboardApp: React.FC = () => {
     const handleClearCards = () => {
         setCards([]);
         setSelectedDeck(null);
-        localStorage.removeItem(`deck_state_${user?.email}`);
     };
 
     return (
@@ -175,26 +169,17 @@ const DashboardApp: React.FC = () => {
                     </div>
                 </section>
 
-                {/* Сообщение */}
                 {message && (
-                    <div className={`message ${message.includes('❌') ? 'error' : message.includes('⛔') ? 'warning' : 'success'}`}>
+                    <div className={`message ${message.includes('❌') ? 'error' : 'success'}`}>
                         {message}
                     </div>
                 )}
 
-                {/* Секция PDF файлов */}
                 <section className="decks-section">
                     <h2>📁 Ваши PDF ({decks.length})</h2>
                     <div className="decks-grid">
                         {decks.map(deck => (
-                            <div
-                                key={deck.id}
-                                className="deck-card"
-                                style={{
-                                    border: selectedDeck?.id === deck.id ? '2px solid #667eea' : '1px solid #e0e0e0',
-                                    backgroundColor: selectedDeck?.id === deck.id ? '#f0f4ff' : 'white'
-                                }}
-                            >
+                            <div key={deck.id} className="deck-card">
                                 <div className="deck-info">
                                     <h3>{deck.name}</h3>
                                     <p>Размер: {(deck.file_size / 1024 / 1024).toFixed(2)} MB</p>
@@ -203,82 +188,54 @@ const DashboardApp: React.FC = () => {
                                             {processingStatus[deck.id] === 'processing' && '⏳ Обработка...'}
                                             {processingStatus[deck.id] === 'completed' && '✅ Готово'}
                                             {processingStatus[deck.id] === 'failed' && '❌ Ошибка'}
-                                            {processingStatus[deck.id] === 'cancelled' && '⛔ Отменено'}
                                         </p>
                                     )}
                                 </div>
                                 <div className="deck-actions">
-                                    {processingFileId === deck.id ? (
-                                        // ✅ Кнопка ОТМЕНЫ при генерации
-                                        <button
-                                            onClick={() => handleCancelGeneration(deck.id)}
-                                            style={{
-                                                background: '#ff6b6b',
-                                                color: 'white',
-                                                border: 'none',
-                                                padding: '0.5rem 1rem',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer',
-                                                width: '100%',
-                                                fontSize: '14px',
-                                                fontWeight: 'bold'
-                                            }}
-                                        >
-                                            ⛔ Остановить
-                                        </button>
-                                    ) : (
-                                        <>
-                                            <button
-                                                onClick={() => handleCreateCards(deck)}
-                                                disabled={loading || processingFileId !== null}
-                                                className="create-cards-btn"
-                                            >
-                                                {processingFileId === deck.id ? '⏳ Создается...' : 'Создать карточки'}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteDeck(deck)}
-                                                disabled={loading}
-                                                className="delete-btn"
-                                            >
-                                                🗑️ Удалить
-                                            </button>
-                                        </>
-                                    )}
+                                    <button
+                                        onClick={() => handleCreateCards(deck)}
+                                        disabled={loading || processingFileId === deck.id}
+                                        className="create-cards-btn"
+                                    >
+                                        {processingFileId === deck.id ? '⏳ Создается...' : 'Создать карточки'}
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteDeck(deck)}
+                                        disabled={loading}
+                                        className="delete-btn"
+                                    >
+                                        🗑️ Удалить
+                                    </button>
                                 </div>
                             </div>
                         ))}
-                        {decks.length === 0 && <div className="empty-state"><p>Нет загруженных PDF</p></div>}
+                        {decks.length === 0 && <div className="empty-state"><p>Нет PDF</p></div>}
                     </div>
                 </section>
 
-                {/* Секция карточек */}
                 {cards.length > 0 && selectedDeck && (
                     <section className="cards-section">
                         <div className="cards-header">
-                            <h2>🎴 Карточки из "{selectedDeck.name}" ({cards.length})</h2>
+                            <h2>🎴 Карточки ({cards.length})</h2>
                             <button onClick={handleClearCards} className="clear-cards-btn">🗑️ Очистить</button>
                         </div>
                         <div className="cards-grid">
                             {cards.map((card, index) => (
                                 <div key={card.id || index} className="flashcard">
-                                    <div className="cards-grid">
-                                        {cards.map((card, index) => (
-                                            <div key={card.id || index} className="flashcard">
-                                                <div className="card-front">
-                                                    <h3>❓ Вопрос</h3>
-                                                    <p>{card.question}</p>
-                                                </div>
-                                                <div className="card-back">
-                                                    <h3>✅ Ответ</h3>
-                                                    <p>{card.answer}</p>
-                                                    {card.context && <p className="context">📍 {card.context}</p>}
-                                                </div>
-                                                ))}
-                                            </div>
-                                            </section>
-                                            )}
-                                    </main>
-
+                                    <div className="card-front">
+                                        <h3>Вопрос</h3>
+                                        <p>{card.question}</p>
+                                    </div>
+                                    <div className="card-back">
+                                        <h3>Ответ</h3>
+                                        <p>{card.answer}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+            </main>
 
             <footer className="app-footer">Учебные карточки из PDF • v1.0</footer>
         </div>
