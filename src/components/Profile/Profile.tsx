@@ -34,7 +34,6 @@ export const Profile: React.FC = () => {
         return new Date(dateString).toLocaleString('ru-RU');
     };
 
-    // ✅ Функция ДЛЯ УДАЛЕНИЯ - вне JSX, на уровне компонента
     const removeHistoryEntry = (id: number | undefined) => {
         setActionHistory(prev => prev.filter(entry => entry.id !== id));
     };
@@ -56,7 +55,6 @@ export const Profile: React.FC = () => {
             {message && <div className="message error">{message}</div>}
 
             <div className="profile-content">
-                {/* 📋 Личная информация */}
                 <section className="profile-info">
                     <h2>Личная информация</h2>
                     <div className="info-grid">
@@ -67,7 +65,6 @@ export const Profile: React.FC = () => {
                     </div>
                 </section>
 
-                {/* 📊 История действий */}
                 <section className="action-history">
                     <h2>📊 История действий ({actionHistory.length})</h2>
                     {actionHistory.length === 0 ? (
@@ -78,34 +75,35 @@ export const Profile: React.FC = () => {
                         <div className="history-list">
                             {actionHistory.map((action, index) => (
                                 <div key={action.id || index} className="history-item">
-                                    <div className="history-item-header">
-                                        <span className="action-type">
-                                            {action.action === 'upload' && '⬆️'}
-                                            {action.action === 'delete' && '🗑️'}
-                                            {action.action === 'process' && '⚙️'}
-                                            {action.action === 'generate' && '✨'}
-                                            {' '}
-                                            <strong>{action.action.toUpperCase()}</strong>
-                                        </span>
-                                        <span style={{ fontSize: '0.8rem', color: '#999' }}>
-                                            {formatDate(action.timestamp)}
-                                        </span>
+                                    <div className="history-item-content">
+                                        <div className="history-item-header">
+                                            <span className="action-type">
+                                                {action.action === 'upload' && '⬆️'}
+                                                {action.action === 'delete' && '🗑️'}
+                                                {action.action === 'process' && '⚙️'}
+                                                {action.action === 'generate' && '✨'}
+                                                {' '}
+                                                <strong>{action.action.toUpperCase()}</strong>
+                                            </span>
+                                            <span style={{ fontSize: '0.8rem', color: '#999' }}>
+                                                {formatDate(action.timestamp)}
+                                            </span>
+                                        </div>
+                                        <div className="history-item-body">
+                                            <p>{action.details}</p>
+                                            {action.filename && (
+                                                <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                                                    📄 {action.filename}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="history-item-body">
-                                        <p>{action.details}</p>
-                                        {action.filename && (
-                                            <p style={{ fontSize: '0.9rem', color: '#666' }}>
-                                                📄 {action.filename}
-                                            </p>
-                                        )}
-                                    </div>
-                                    {/* ✅ Кнопка УДАЛЕНИЯ с правильной функцией */}
                                     <button
                                         onClick={() => removeHistoryEntry(action.id)}
-                                        className="remove-btn"
+                                        className="delete-history-btn"
                                         aria-label="Удалить запись"
                                     >
-                                        ✕ Удалить
+                                        🗑️ Удалить
                                     </button>
                                 </div>
                             ))}

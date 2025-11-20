@@ -88,53 +88,6 @@
     font-size: 16px;
 }
 
-.email-display, .email-edit {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-}
-
-.email-input {
-    padding: 10px 12px;
-    border: 2px solid #ddd;
-    border-radius: 6px;
-    font-size: 16px;
-    flex: 1;
-    transition: border-color 0.3s ease;
-}
-
-.email-input:focus {
-    outline: none;
-    border-color: #007bff;
-}
-
-.edit-btn, .save-btn, .cancel-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
-    padding: 8px;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
-}
-
-.edit-btn:hover {
-    background: #e3f2fd;
-    color: #007bff;
-}
-
-.save-btn:hover {
-    background: #e8f5e8;
-    color: #28a745;
-}
-
-.cancel-btn:hover {
-    background: #ffe6e6;
-    color: #dc3545;
-}
-
-/* История действий */
 .history-list {
     display: flex;
     flex-direction: column;
@@ -146,15 +99,46 @@
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     background: #fafafa;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.history-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #007bff, #0056b3);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
 }
 
 .history-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 123, 255, 0.2);
+    border-color: #007bff;
 }
 
-.action-main {
+.history-item:hover::before {
+    transform: scaleY(1);
+}
+
+.history-item-content {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.history-item-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -171,27 +155,10 @@
     text-transform: capitalize;
 }
 
-.action-date {
-    color: #666;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.action-description {
+.history-item-body p {
+    margin: 8px 0;
     color: #333;
-    margin-bottom: 8px;
     font-size: 15px;
-    line-height: 1.4;
-}
-
-.action-meta {
-    color: #888;
-    font-size: 13px;
-    background: #f0f0f0;
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: inline-block;
-    margin-right: 8px;
 }
 
 .empty-state {
@@ -203,12 +170,6 @@
 .empty-state p {
     margin: 0;
     font-size: 16px;
-}
-
-.empty-subtitle {
-    font-size: 14px !important;
-    color: #888;
-    margin-top: 8px !important;
 }
 
 .loading {
@@ -239,7 +200,53 @@
     border: 1px solid #c3e6cb;
 }
 
-/* Адаптивность */
+.delete-history-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #ff4757;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.delete-history-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: left 0.5s ease;
+    z-index: 1;
+}
+
+.delete-history-btn:hover::before {
+    left: 100%;
+}
+
+.delete-history-btn:hover {
+    background: #ff3742;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+}
+
+.delete-history-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 @media (max-width: 768px) {
     .profile-container {
         padding: 10px;
@@ -256,6 +263,19 @@
         padding: 20px;
     }
 
+    .history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .delete-history-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+
     .info-item {
         flex-direction: column;
         align-items: flex-start;
@@ -264,40 +284,5 @@
 
     .info-item label {
         min-width: auto;
-    }
-
-    .action-main {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-
-    .email-display, .email-edit {
-        width: 100%;
-    }
-
-    .email-input {
-        width: 100%;
-    }
-
-    .remove-btn {
-        margin-top: 0.5rem;
-        padding: 0.4rem 0.8rem;
-        background: #ff6b6b;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.85rem;
-        font-weight: 500;
-        transition: background 0.2s;
-    }
-
-    .remove-btn:hover {
-        background: #ff5252;
-    }
-
-    .remove-btn:active {
-        background: #ff3333;
     }
 }
