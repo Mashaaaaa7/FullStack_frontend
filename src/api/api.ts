@@ -1,4 +1,4 @@
-import { UploadResponse, ActionHistory, Card } from '../types';
+import { UploadResponse, ActionHistory } from '../types';
 
 const API_BASE = 'http://127.0.0.1:8000';
 
@@ -55,21 +55,9 @@ export const api = {
         return await handleResponse(res);
     },
 
-    // ✅ НОВАЯ ФУНКЦИЯ
-    cancelProcessing: async (fileId: number): Promise<{success: boolean; message: string}> => {
+    getCards: async (fileId: number, skip: number = 0, limit: number = 10) => {
         const res = await fetch(
-            `${API_BASE}/api/pdf/cancel-processing/${fileId}`,
-            {
-                method: 'POST',
-                headers: getAuthHeaders()
-            }
-        );
-        return await handleResponse(res);
-    },
-
-    getCards: async (fileId: number): Promise<{success: boolean; cards: Card[]; total: number}> => {
-        const res = await fetch(
-            `${API_BASE}/api/pdf/cards/${fileId}`,
+            `${API_BASE}/api/pdf/cards/${fileId}?skip=${skip}&limit=${limit}`,
             { method: 'GET', headers: getAuthHeaders() }
         );
         return await handleResponse(res);
