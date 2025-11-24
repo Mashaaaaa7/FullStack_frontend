@@ -24,6 +24,13 @@ body {
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
+.header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .app-header h1 {
     color: #333;
     margin-bottom: 0.5rem;
@@ -33,6 +40,35 @@ body {
 .app-header p {
     color: #666;
     font-size: 1.1rem;
+    margin: 0;
+}
+
+.header-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.profile-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.profile-btn:hover {
+    background: #0056b3;
 }
 
 .app-main {
@@ -43,14 +79,7 @@ body {
     width: 100%;
 }
 
-/* Базовые стили для центрирования */
-.app {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Стили для контейнера авторизации */
+/* Авторизация */
 .auth-container {
     display: flex;
     justify-content: center;
@@ -60,7 +89,6 @@ body {
     padding: 20px;
 }
 
-/* Прямоугольная форма */
 .auth-form-container {
     background: white;
     padding: 40px;
@@ -79,7 +107,6 @@ body {
     font-weight: 600;
 }
 
-/* Стили для формы */
 .auth-form {
     display: flex;
     flex-direction: column;
@@ -123,7 +150,6 @@ body {
     cursor: not-allowed;
 }
 
-/* Сообщения */
 .message {
     padding: 12px;
     border-radius: 6px;
@@ -144,7 +170,6 @@ body {
     border: 1px solid #c3e6cb;
 }
 
-/* Ссылка для переключения между формами */
 .auth-switch {
     text-align: center;
     margin-top: 20px;
@@ -168,7 +193,7 @@ body {
     color: #0056b3;
 }
 
-
+/* Загрузка */
 .upload-section {
     background: white;
     padding: 2rem;
@@ -219,25 +244,7 @@ body {
     cursor: not-allowed;
 }
 
-.message {
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-    font-weight: 500;
-}
-
-.message.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.message.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
+/* PDF список */
 .decks-section {
     background: white;
     padding: 2rem;
@@ -282,26 +289,13 @@ body {
     font-size: 0.9rem;
 }
 
-.create-cards-btn {
-    padding: 0.75rem 1.5rem;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
+.status-badge {
+    margin-top: 0.5rem;
     font-weight: 500;
-    transition: background 0.3s ease;
+    font-size: 0.8rem;
 }
 
-.create-cards-btn:hover:not(:disabled) {
-    background: #218838;
-}
-
-.create-cards-btn:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-}
-
+/* Карточки */
 .cards-section {
     background: white;
     padding: 2rem;
@@ -324,6 +318,7 @@ body {
     perspective: 1000px;
     height: 200px;
     cursor: pointer;
+    position: relative;
 }
 
 .flashcard:hover .card-front {
@@ -382,10 +377,248 @@ body {
     margin-top: auto;
 }
 
+/* Пагинация */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: 32px;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.pagination-btn {
+    padding: 12px 24px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #0056b3;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-btn:focus-visible {
+    outline: 2px solid #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.4);
+}
+
+.pagination-btn:disabled {
+    background: #f8f9fa;
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.pagination-pages {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    flex: 1;
+}
+
+.pagination-page {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #007bff;
+    background: white;
+    color: #007bff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagination-page:hover {
+    background: #007bff;
+    color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-page:focus-visible {
+    outline: 2px solid #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.4);
+}
+
+.pagination-page.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-info {
+    color: #666;
+    font-size: 14px;
+    font-style: italic;
+}
+
+/* Кнопки */
+.deck-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.create-cards-btn {
+    padding: 12px 24px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.create-cards-btn:hover:not(:disabled) {
+    background: #218838;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.create-cards-btn:focus-visible {
+    outline: 2px solid #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.4);
+}
+
+.create-cards-btn:disabled {
+    background: #f8f9fa;
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.view-btn {
+    padding: 12px 24px;
+    background: #17a2b8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.view-btn:hover:not(:disabled) {
+    background: #138496;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.view-btn:focus-visible {
+    outline: 2px solid #17a2b8;
+    box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.4);
+}
+
+.view-btn:disabled {
+    background: #f8f9fa;
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.delete-btn {
+    padding: 12px 24px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.delete-btn:hover:not(:disabled) {
+    background: #c82333;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.delete-btn:focus-visible {
+    outline: 2px solid #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.4);
+}
+
+.delete-btn:disabled {
+    background: #f8f9fa;
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.clear-cards-btn {
+    padding: 12px 24px;
+    background: #fd7e14;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.clear-cards-btn:hover:not(:disabled) {
+    background: #e96a00;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.clear-cards-btn:focus-visible {
+    outline: 2px solid #fd7e14;
+    box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.4);
+}
+
+.clear-cards-btn:disabled {
+    background: #f8f9fa;
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Headers */
+.cards-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
     .app-main {
         padding: 1rem;
+    }
+
+    .app-header {
+        padding: 1.5rem;
+    }
+
+    .app-header h1 {
+        font-size: 2rem;
+    }
+
+    .header-controls {
+        flex-direction: column;
+        gap: 10px;
     }
 
     .deck-card {
@@ -398,83 +631,152 @@ body {
         grid-template-columns: 1fr;
     }
 
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 20px;
+        gap: 12px;
+    }
+
+    .pagination-btn {
+        padding: 10px 20px;
+        font-size: 12px;
+    }
+
+    .pagination-pages {
+        width: 100%;
+        order: 3;
+    }
+
+    .pagination-page {
+        width: 36px;
+        height: 36px;
+        font-size: 12px;
+    }
+
     .deck-actions {
-        display: flex;
         flex-direction: column;
-        gap: 0.5rem;
-        min-width: 140px;
+        gap: 8px;
+        width: 100%;
     }
 
-    .delete-btn {
-        padding: 0.5rem 1rem;
-        background: #dc3545;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        font-size: 0.9rem;
+    .create-cards-btn,
+    .view-btn,
+    .delete-btn,
+    .clear-cards-btn {
+        width: 100%;
+        padding: 10px 16px;
+        font-size: 12px;
     }
 
-    .delete-btn:hover:not(:disabled) {
-        background: #c82333;
-        transform: translateY(-1px);
+    .cards-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-header {
+        padding: 1rem;
     }
 
-    .delete-btn:disabled {
-        background: #6c757d;
-        cursor: not-allowed;
-        transform: none;
+    .app-header h1 {
+        font-size: 1.8rem;
     }
 
-    .create-cards-btn {
-        padding: 0.75rem 1rem;
-        background: #28a745;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        font-size: 0.9rem;
+    .app-header p {
+        font-size: 1rem;
     }
 
-    .create-cards-btn:hover:not(:disabled) {
-        background: #218838;
-        transform: translateY(-1px);
+    .app-main {
+        padding: 0.5rem;
     }
 
-    .create-cards-btn:disabled {
-        background: #6c757d;
-        cursor: not-allowed;
-        transform: none;
+    .upload-section,
+    .decks-section,
+    .cards-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
     }
 
-    /* Добавляем в существующий App.css */
-    .header-controls {
-        display: flex;
-        align-items: center;
-        gap: 15px;
+    .upload-area {
+        padding: 1rem;
     }
 
-    .header-buttons {
-        display: flex;
-        gap: 10px;
-    }
-
-    .profile-btn {
-        background: #007bff;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 5px;
-        cursor: pointer;
+    .upload-label {
+        padding: 0.8rem 1.5rem;
         font-size: 14px;
     }
 
-    .profile-btn:hover {
-        background: #0056b3;
+    .deck-card {
+        padding: 1rem;
     }
 
+    .flashcard {
+        height: 180px;
+    }
+
+    .card-front,
+    .card-back {
+        padding: 1rem;
+    }
+
+    .pagination {
+        gap: 8px;
+        padding: 16px;
+        flex-direction: column;
+    }
+
+    .pagination-pages {
+        width: 100%;
+        gap: 6px;
+    }
+
+    .pagination-page {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+
+    .pagination-btn {
+        width: 100%;
+        padding: 8px 16px;
+        font-size: 12px;
+    }
+
+    .pagination-info {
+        font-size: 12px;
+        text-align: center;
+        width: 100%;
+    }
+
+    .create-cards-btn,
+    .view-btn,
+    .delete-btn,
+    .clear-cards-btn {
+        width: 100%;
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+
+    .cards-header {
+        gap: 12px;
+    }
+
+    .deck-actions {
+        gap: 6px;
+    }
+
+    .auth-form-container {
+        padding: 20px;
+    }
+
+    .auth-form {
+        gap: 16px;
+    }
+
+    .cards-grid {
+        gap: 1rem;
+    }
 }
