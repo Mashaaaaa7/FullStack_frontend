@@ -42,17 +42,3 @@
     background: #e3f2fd;
     font-weight: 500;
 }
-
-.navbar-logout {
-    background: #ff4757;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.navbar-logout:hover {
-    background: #ff3742;
-}
