@@ -638,6 +638,10 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     opacity: 0.6;
 }
 
+/* ============================================================================
+   КНОПКА УДАЛЕНИЯ (ИСПРАВЛЕНА - КРАСНАЯ)
+   ============================================================================ */
+
 .delete-btn {
     padding: 0.75rem 1.5rem;
     background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
@@ -1222,3 +1226,216 @@ input[type="range"]:disabled::-webkit-slider-thumb {
 .gap-3 { gap: 1rem; }
 .gap-4 { gap: 1.5rem; }
 .gap-5 { gap: 2rem; }
+
+
+/* ============================================================================
+   MODAL STYLES
+   ============================================================================ */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: translateY(0);
+}
+
+.modal-header {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0.25rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    color: #374151;
+    background: #f3f4f6;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-icon {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-icon.warning svg {
+    stroke: #fd7e14;
+}
+
+.modal-text {
+    text-align: center;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.modal-subtext {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.9375rem;
+    margin-bottom: 1.5rem;
+}
+
+.modal-deck-info,
+.modal-stats {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-top: 1.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.info-item,
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.info-item:last-child,
+.stat-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.info-item:first-child,
+.stat-item:first-child {
+    padding-top: 0;
+}
+
+.info-label,
+.stat-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.info-value,
+.stat-value {
+    color: #1f2937;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    border-top: 1px solid #e5e7eb;
+}
+
+.modal-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-btn-cancel {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.modal-btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.modal-btn-delete {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.modal-btn-delete.warning {
+    background: linear-gradient(135deg, #fd7e14 0%, #e96a00 100%);
+}
+
+.modal-btn-delete:hover {
+    background: linear-gradient(135deg, #c82333 0%, #b21f2d 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.modal-btn-delete.warning:hover {
+    background: linear-gradient(135deg, #e96a00 0%, #d55f00 100%);
+    box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+}
+
+.delete-icon {
+    display: flex;
+    align-items: center;
+}
+
+/* Анимация появления модального окна */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal.show .modal-content {
+    animation: modalFadeIn 0.3s ease;
+}
