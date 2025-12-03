@@ -85,5 +85,5 @@ export const api = {
             { method: 'DELETE', headers: getAuthHeaders() }
         );
         return await handleResponse(res);
-    }
+    },
 };
