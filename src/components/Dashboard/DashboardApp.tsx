@@ -8,6 +8,43 @@ interface DeckWithId extends Deck {
     id: number;
 }
 
+// Modal Component (вынесен за пределы основного компонента для чистоты)
+interface ModalProps {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+const Modal: React.FC<ModalProps> = ({ isOpen, title, message, onConfirm, onCancel }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="modal-overlay" onClick={onCancel}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h2>{title}</h2>
+                    <button className="modal-close" onClick={onCancel}>
+                        ×
+                    </button>
+                </div>
+                <div className="modal-body">
+                    <p>{message}</p>
+                </div>
+                <div className="modal-footer">
+                    <button className="modal-btn modal-btn-cancel" onClick={onCancel}>
+                        Отмена
+                    </button>
+                    <button className="modal-btn modal-btn-confirm dangerous" onClick={onConfirm}>
+                        Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const DashboardApp: React.FC = () => {
     const { user } = useAuth();
     const [decks, setDecks] = useState<DeckWithId[]>([]);
@@ -22,6 +59,20 @@ const DashboardApp: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCards, setTotalCards] = useState(0);
     const cardsPerPage = 6;
+
+    interface ModalState {
+        isOpen: boolean;
+        title: string;
+        message: string;
+        deckToDelete: DeckWithId | null;
+    }
+
+    const [modalState, setModalState] = useState<ModalState>({
+        isOpen: false,
+        title: '',
+        message: '',
+        deckToDelete: null,
+    });
 
     useEffect(() => {
         if (user?.email) {
@@ -116,17 +167,29 @@ const DashboardApp: React.FC = () => {
         }
     };
 
-    const handleDeleteDeck = async (deck: DeckWithId) => {
-        if (!window.confirm(`Удалить ${deck.name}?`)) return;
+    const handleDeleteDeck = (deck: DeckWithId) => {
+        setModalState({
+            isOpen: true,
+            title: '🗑️ Удалить PDF?',
+            message: `Вы уверены, что хотите удалить файл "${deck.name}"? Это действие нельзя отменить.`,
+            deckToDelete: deck,
+        });
+    };
+
+    const confirmDelete = async () => {
+        const { deckToDelete } = modalState;
+
+        if (!deckToDelete) return;
 
         setLoading(true);
+        setModalState({ ...modalState, isOpen: false });
 
         try {
-            await api.deleteFile(deck.id);
-            setDecks(decks.filter(d => d.id !== deck.id));
+            await api.deleteFile(deckToDelete.id);
+            setDecks(decks.filter(d => d.id !== deckToDelete.id));
             setMessage('✅ Файл удален');
 
-            if (selectedDeck?.id === deck.id) {
+            if (selectedDeck?.id === deckToDelete.id) {
                 setCards([]);
                 setSelectedDeck(null);
                 setCurrentPage(1);
@@ -137,6 +200,10 @@ const DashboardApp: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const cancelDelete = () => {
+        setModalState({ ...modalState, isOpen: false });
     };
 
     const handleClearCards = () => {
@@ -152,7 +219,7 @@ const DashboardApp: React.FC = () => {
         <div className="app">
             <header className="app-header">
                 <div className="header-content">
-                    <h1>🎴 Учебные карточки из PDF</h1>
+                    <h1>📖 Учебные карточки из PDF</h1>
                     <p>Создавайте карточки для эффективного обучения</p>
                     <div className="header-controls">
                         <span>Пользователь: {user?.email}</span>
@@ -176,9 +243,9 @@ const DashboardApp: React.FC = () => {
                         </label>
                     </div>
 
-                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '6px' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                            📊 Максимум карточек: {maxCards}
+                    <div className="slider-container">
+                        <label className="slider-label">
+                            📊 Максимум карточек: <span className="slider-value">{maxCards}</span>
                         </label>
                         <input
                             type="range"
@@ -186,14 +253,13 @@ const DashboardApp: React.FC = () => {
                             max="50"
                             value={maxCards}
                             onChange={(e) => setMaxCards(parseInt(e.target.value))}
-                            style={{ width: '100%' }}
                             disabled={loading}
                         />
                     </div>
                 </section>
 
                 {message && (
-                    <div className={`message ${message.includes('❌') ? 'error' : 'success'}`}>
+                    <div className={`message ${message.includes('❌') ? 'error' : message.includes('✅') ? 'success' : 'warning'}`}>
                         {message}
                     </div>
                 )}
@@ -207,7 +273,7 @@ const DashboardApp: React.FC = () => {
                                     <h3>{deck.name}</h3>
                                     <p>Размер: {(deck.file_size / 1024 / 1024).toFixed(2)} MB</p>
                                     {processingStatus[deck.id] && (
-                                        <p className="status-badge">
+                                        <p className={`status-badge ${processingStatus[deck.id]}`}>
                                             {processingStatus[deck.id] === 'processing' && '⏳ Обработка...'}
                                             {processingStatus[deck.id] === 'completed' && '✅ Готово'}
                                             {processingStatus[deck.id] === 'failed' && '❌ Ошибка'}
@@ -245,7 +311,12 @@ const DashboardApp: React.FC = () => {
                                 </div>
                             </div>
                         ))}
-                        {decks.length === 0 && <div className="empty-state"><p>Нет PDF</p></div>}
+                        {decks.length === 0 && (
+                            <div className="empty-state">
+                                <p>Нет загруженных PDF файлов</p>
+                                <p className="empty-subtitle">Загрузите первый PDF файл, чтобы начать создавать карточки</p>
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -253,10 +324,14 @@ const DashboardApp: React.FC = () => {
                     <section className="cards-section">
                         <div className="cards-header">
                             <div>
-                                <h2>🎴 Карточки ({totalCards})</h2>
+                                <h2>🎴 Карточки из "{selectedDeck.name}" ({totalCards})</h2>
                             </div>
-                            <button onClick={handleClearCards} className="clear-cards-btn">
-                                🗑️ Очистить все
+                            <button
+                                onClick={handleClearCards}
+                                className="clear-cards-btn"
+                                disabled={loading}
+                            >
+                                🗑️
                             </button>
                         </div>
 
@@ -309,9 +384,20 @@ const DashboardApp: React.FC = () => {
                         )}
                     </section>
                 )}
+
+                {/* Модальное окно удаления */}
+                <Modal
+                    isOpen={modalState.isOpen}
+                    title={modalState.title}
+                    message={modalState.message}
+                    onConfirm={confirmDelete}
+                    onCancel={cancelDelete}
+                />
             </main>
 
-            <footer className="app-footer">Учебные карточки из PDF • v1.0</footer>
+            <footer className="app-footer">
+                Учебные карточки из PDF • v1.0
+            </footer>
         </div>
     );
 };
