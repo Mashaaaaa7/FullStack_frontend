@@ -8,43 +8,6 @@ interface DeckWithId extends Deck {
     id: number;
 }
 
-// Modal Component (вынесен за пределы основного компонента для чистоты)
-interface ModalProps {
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-}
-
-const Modal: React.FC<ModalProps> = ({ isOpen, title, message, onConfirm, onCancel }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="modal-overlay" onClick={onCancel}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h2>{title}</h2>
-                    <button className="modal-close" onClick={onCancel}>
-                        ×
-                    </button>
-                </div>
-                <div className="modal-body">
-                    <p>{message}</p>
-                </div>
-                <div className="modal-footer">
-                    <button className="modal-btn modal-btn-cancel" onClick={onCancel}>
-                        Отмена
-                    </button>
-                    <button className="modal-btn modal-btn-confirm dangerous" onClick={onConfirm}>
-                        Удалить
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const DashboardApp: React.FC = () => {
     const { user } = useAuth();
     const [decks, setDecks] = useState<DeckWithId[]>([]);
@@ -52,7 +15,6 @@ const DashboardApp: React.FC = () => {
     const [selectedDeck, setSelectedDeck] = useState<DeckWithId | null>(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
-    const [processingStatus, setProcessingStatus] = useState<{[key: number]: string}>({});
     const [maxCards, setMaxCards] = useState(10);
     const [processingFileId, setProcessingFileId] = useState<number | null>(null);
 
@@ -60,19 +22,10 @@ const DashboardApp: React.FC = () => {
     const [totalCards, setTotalCards] = useState(0);
     const cardsPerPage = 6;
 
-    interface ModalState {
-        isOpen: boolean;
-        title: string;
-        message: string;
-        deckToDelete: DeckWithId | null;
-    }
-
-    const [modalState, setModalState] = useState<ModalState>({
-        isOpen: false,
-        title: '',
-        message: '',
-        deckToDelete: null,
-    });
+    // Состояние для модальных окон
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleteCardsModalOpen, setDeleteCardsModalOpen] = useState(false);
+    const [selectedDeckForDelete, setSelectedDeckForDelete] = useState<DeckWithId | null>(null);
 
     useEffect(() => {
         if (user?.email) {
@@ -134,7 +87,6 @@ const DashboardApp: React.FC = () => {
         setProcessingFileId(deck.id);
 
         try {
-            setProcessingStatus(prev => ({...prev, [deck.id]: 'processing'}));
             setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
 
             await api.processCards(deck.id, maxCards);
@@ -148,7 +100,6 @@ const DashboardApp: React.FC = () => {
                 if (statusRes.status === 'completed') {
                     setSelectedDeck(deck);
                     setCurrentPage(1);
-                    setProcessingStatus(prev => ({...prev, [deck.id]: 'completed'}));
                     setMessage('✅ Карточки готовы!');
                     await loadPage(deck.id, 1);
                     break;
@@ -160,7 +111,6 @@ const DashboardApp: React.FC = () => {
             }
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
-            setProcessingStatus(prev => ({...prev, [deck.id]: 'failed'}));
         } finally {
             setLoading(false);
             setProcessingFileId(null);
@@ -168,28 +118,22 @@ const DashboardApp: React.FC = () => {
     };
 
     const handleDeleteDeck = (deck: DeckWithId) => {
-        setModalState({
-            isOpen: true,
-            title: '🗑️ Удалить PDF?',
-            message: `Вы уверены, что хотите удалить файл "${deck.name}"? Это действие нельзя отменить.`,
-            deckToDelete: deck,
-        });
+        setSelectedDeckForDelete(deck);
+        setDeleteModalOpen(true);
     };
 
-    const confirmDelete = async () => {
-        const { deckToDelete } = modalState;
-
-        if (!deckToDelete) return;
+    const confirmDeleteDeck = async () => {
+        if (!selectedDeckForDelete) return;
 
         setLoading(true);
-        setModalState({ ...modalState, isOpen: false });
+        setDeleteModalOpen(false);
 
         try {
-            await api.deleteFile(deckToDelete.id);
-            setDecks(decks.filter(d => d.id !== deckToDelete.id));
+            await api.deleteFile(selectedDeckForDelete.id);
+            setDecks(decks.filter(d => d.id !== selectedDeckForDelete.id));
             setMessage('✅ Файл удален');
 
-            if (selectedDeck?.id === deckToDelete.id) {
+            if (selectedDeck?.id === selectedDeckForDelete.id) {
                 setCards([]);
                 setSelectedDeck(null);
                 setCurrentPage(1);
@@ -199,18 +143,20 @@ const DashboardApp: React.FC = () => {
             setMessage(`❌ ${err.message}`);
         } finally {
             setLoading(false);
+            setSelectedDeckForDelete(null);
         }
     };
 
-    const cancelDelete = () => {
-        setModalState({ ...modalState, isOpen: false });
+    const handleClearCardsClick = () => {
+        setDeleteCardsModalOpen(true);
     };
 
-    const handleClearCards = () => {
+    const confirmClearCards = () => {
         setCards([]);
         setSelectedDeck(null);
         setCurrentPage(1);
         setTotalCards(0);
+        setDeleteCardsModalOpen(false);
     };
 
     const totalPages = Math.ceil(totalCards / cardsPerPage);
@@ -271,14 +217,7 @@ const DashboardApp: React.FC = () => {
                             <div key={deck.id} className="deck-card">
                                 <div className="deck-info">
                                     <h3>{deck.name}</h3>
-                                    <p>Размер: {(deck.file_size / 1024 / 1024).toFixed(2)} MB</p>
-                                    {processingStatus[deck.id] && (
-                                        <p className={`status-badge ${processingStatus[deck.id]}`}>
-                                            {processingStatus[deck.id] === 'processing' && '⏳ Обработка...'}
-                                            {processingStatus[deck.id] === 'completed' && '✅ Готово'}
-                                            {processingStatus[deck.id] === 'failed' && '❌ Ошибка'}
-                                        </p>
-                                    )}
+                                    )
                                 </div>
                                 <div className="deck-actions">
                                     <button
@@ -327,7 +266,7 @@ const DashboardApp: React.FC = () => {
                                 <h2>🎴 Карточки из "{selectedDeck.name}" ({totalCards})</h2>
                             </div>
                             <button
-                                onClick={handleClearCards}
+                                onClick={handleClearCardsClick}
                                 className="clear-cards-btn"
                                 disabled={loading}
                             >
@@ -385,14 +324,93 @@ const DashboardApp: React.FC = () => {
                     </section>
                 )}
 
-                {/* Модальное окно удаления */}
-                <Modal
-                    isOpen={modalState.isOpen}
-                    title={modalState.title}
-                    message={modalState.message}
-                    onConfirm={confirmDelete}
-                    onCancel={cancelDelete}
-                />
+                {/* Модальное окно для подтверждения удаления колоды */}
+                <div className={`modal ${deleteModalOpen ? 'show' : ''}`} style={{ display: deleteModalOpen ? 'flex' : 'none' }}>
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3>Подтверждение удаления</h3>
+                            <button className="modal-close" onClick={() => setDeleteModalOpen(false)}>&times;</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="modal-icon">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#dc3545" strokeWidth="1.5">
+                                    <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <p className="modal-text">Вы уверены, что хотите удалить эту колоду?</p>
+                            <p className="modal-subtext">Это действие нельзя будет отменить.</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                className="modal-btn modal-btn-cancel"
+                                onClick={() => setDeleteModalOpen(false)}
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                className="modal-btn modal-btn-delete"
+                                onClick={confirmDeleteDeck}
+                            >
+                                <span className="delete-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+                                    </svg>
+                                </span>
+                                Удалить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Модальное окно для удаления всех карточек */}
+                <div className={`modal ${deleteCardsModalOpen ? 'show' : ''}`} style={{ display: deleteCardsModalOpen ? 'flex' : 'none' }}>
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3>Очистить карточки</h3>
+                            <button className="modal-close" onClick={() => setDeleteCardsModalOpen(false)}>&times;</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="modal-icon warning">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fd7e14" strokeWidth="1.5">
+                                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.694-.833-2.464 0L4.197 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                </svg>
+                            </div>
+                            <p className="modal-text">Удалить все карточки?</p>
+                            <p className="modal-subtext">Все сгенерированные карточки будут удалены без возможности восстановления.</p>
+                            <div className="modal-stats">
+                                <div className="stat-item">
+                                    <span className="stat-label">Всего карточек:</span>
+                                    <span id="modalTotalCards" className="stat-value">{cards.length}</span>
+                                </div>
+                                {selectedDeck && (
+                                    <div className="stat-item">
+                                        <span className="stat-label">Текущая колода:</span>
+                                        <span id="modalTotalDecks" className="stat-value">{selectedDeck.name}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                className="modal-btn modal-btn-cancel"
+                                onClick={() => setDeleteCardsModalOpen(false)}
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                className="modal-btn modal-btn-delete warning"
+                                onClick={confirmClearCards}
+                            >
+                                <span className="delete-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </span>
+                                Удалить все
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </main>
 
             <footer className="app-footer">
