@@ -85,27 +85,5 @@ export const api = {
             { method: 'DELETE', headers: getAuthHeaders() }
         );
         return await handleResponse(res);
-    },
-
-    toggleCardVisibility: async (cardId: number): Promise<{success: boolean; is_hidden: boolean; message: string}> => {
-        const res = await fetch(
-            `${API_BASE}/api/pdf/cards/${cardId}/toggle-visibility`,
-            {
-                method: 'PATCH',
-                headers: getAuthHeaders()
-            }
-        );
-        return await handleResponse(res);
-    },
-
-    clearHiddenCards: async (fileId: number): Promise<{success: boolean; message: string; deleted_count: number}> => {
-        const res = await fetch(
-            `${API_BASE}/api/pdf/cards/${fileId}/clear-hidden`,
-            {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            }
-        );
-        return await handleResponse(res);
     }
 };
