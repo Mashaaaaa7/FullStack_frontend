@@ -108,4 +108,5 @@ export const api = {
         );
         return await handleResponse(res);
     }
+    },
 };
