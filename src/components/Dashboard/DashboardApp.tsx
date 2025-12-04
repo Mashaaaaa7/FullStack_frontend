@@ -379,7 +379,7 @@ const DashboardApp: React.FC = () => {
                             <div className="modal-stats">
                                 <div className="stat-item">
                                     <span className="stat-label">Всего карточек:</span>
-                                    <span id="modalTotalCards" className="stat-value">{cards.length}</span>
+                                    <span id="Total" className="stat-value">{totalCards}</span>
                                 </div>
                                 {selectedDeck && (
                                     <div className="stat-item">
