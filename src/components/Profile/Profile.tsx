@@ -113,7 +113,6 @@ export const Profile: React.FC = () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Успех! Данные обновлены.
                 setMessage('✅ Пароль успешно изменён. Пожалуйста, войдите снова.');
                 setMessageType('success');
 
@@ -230,11 +229,9 @@ export const Profile: React.FC = () => {
             )}
 
             <div className="profile-content">
-                {/* ===== ЛИЧНАЯ ИНФОРМАЦИЯ ===== */}
                 <section className="profile-info">
                     <h2>Личная информация</h2>
                     <div className="info-grid">
-                        {/* Email */}
                         <div className="info-item">
                             <label>Email:</label>
                             <div className="info-display">
@@ -249,7 +246,6 @@ export const Profile: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Форма смены email */}
                         {showEmailForm && (
                             <div className="edit-form email-form">
                                 <h3>Изменить Email</h3>
@@ -327,7 +323,6 @@ export const Profile: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Пароль */}
                         <div className="info-item">
                             <label>Пароль:</label>
                             <div className="info-display">
@@ -342,7 +337,6 @@ export const Profile: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Форма смены пароля */}
                         {showPasswordForm && (
                             <div className="edit-form password-form">
                                 <h3>Изменить Пароль</h3>
@@ -452,7 +446,6 @@ export const Profile: React.FC = () => {
                     </div>
                 </section>
 
-                {/* ===== ИСТОРИЯ ДЕЙСТВИЙ ===== */}
                 <section className="action-history">
                     <h2>📊 История действий ({actionHistory.length})</h2>
                     {actionHistory.length === 0 ? (
