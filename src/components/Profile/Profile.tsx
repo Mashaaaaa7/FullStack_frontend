@@ -22,7 +22,7 @@ export const Profile: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-    const navigate = useNavigate(); // Хук для перенаправления
+    const navigate = useNavigate();
 
     // Состояние для смены пароля
     const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -34,7 +34,12 @@ export const Profile: React.FC = () => {
     const [passwordErrors, setPasswordErrors] = useState<Partial<ChangePasswordForm>>({});
     const [passwordLoading, setPasswordLoading] = useState(false);
 
-    // Состояние для смены email
+    // Состояние для отображения паролей
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [showEmailPassword, setShowEmailPassword] = useState(false);
+
     const [showEmailForm, setShowEmailForm] = useState(false);
     const [emailForm, setEmailForm] = useState<ChangeEmailForm>({
         new_email: '',
@@ -96,7 +101,6 @@ export const Profile: React.FC = () => {
 
         try {
             setPasswordLoading(true);
-            // Используем ваш существующий fetch запрос
             const response = await fetch('/api/profile/change-password', {
                 method: 'POST',
                 headers: {
@@ -116,10 +120,9 @@ export const Profile: React.FC = () => {
                 setMessage('✅ Пароль успешно изменён. Пожалуйста, войдите снова.');
                 setMessageType('success');
 
-                // Даем пользователю прочитать сообщение 1.5 секунды и выкидываем
                 setTimeout(() => {
-                    logout(); // Чистим токен и состояние пользователя
-                    navigate('/login'); // Редирект на логин
+                    logout();
+                    navigate('/login');
                 }, 1500);
 
             } else {
@@ -135,7 +138,6 @@ export const Profile: React.FC = () => {
         }
     };
 
-    // ===== ВАЛИДАЦИЯ EMAIL =====
     const validateEmailForm = (): boolean => {
         const errors: Partial<ChangeEmailForm> = {};
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -156,7 +158,6 @@ export const Profile: React.FC = () => {
         return Object.keys(errors).length === 0;
     };
 
-    // ===== СМЕНА EMAIL =====
     const handleChangeEmail = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -179,11 +180,9 @@ export const Profile: React.FC = () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Успех!
                 setMessage('✅ Email успешно изменён. Пожалуйста, войдите снова.');
                 setMessageType('success');
 
-                // Также выкидываем пользователя, так как старый email (логин) больше невалиден
                 setTimeout(() => {
                     logout();
                     navigate('/login');
@@ -272,23 +271,33 @@ export const Profile: React.FC = () => {
                                         )}
                                     </div>
 
-                                    <div className="form-group">
+                                    <div className="form-group password-input-wrapper">
                                         <label htmlFor="email-password">
                                             Пароль (для подтверждения):
                                         </label>
-                                        <input
-                                            id="email-password"
-                                            type="password"
-                                            className="form-input"
-                                            value={emailForm.password}
-                                            onChange={(e) =>
-                                                setEmailForm({
-                                                    ...emailForm,
-                                                    password: e.target.value
-                                                })
-                                            }
-                                            placeholder="Введите пароль"
-                                        />
+                                        <div className="password-input-container">
+                                            <input
+                                                id="email-password"
+                                                type={showEmailPassword ? "text" : "password"}
+                                                className="form-input"
+                                                value={emailForm.password}
+                                                onChange={(e) =>
+                                                    setEmailForm({
+                                                        ...emailForm,
+                                                        password: e.target.value
+                                                    })
+                                                }
+                                                placeholder="Введите пароль"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="password-toggle"
+                                                onClick={() => setShowEmailPassword(!showEmailPassword)}
+                                                title={showEmailPassword ? "Скрыть пароль" : "Показать пароль"}
+                                            >
+                                                {showEmailPassword ? "🙈" : "👁️"}
+                                            </button>
+                                        </div>
                                         {emailErrors.password && (
                                             <span className="error-text">
                                                 {emailErrors.password}
@@ -314,6 +323,7 @@ export const Profile: React.FC = () => {
                                                     password: ''
                                                 });
                                                 setEmailErrors({});
+                                                setShowEmailPassword(false);
                                             }}
                                         >
                                             Отмена
@@ -341,23 +351,33 @@ export const Profile: React.FC = () => {
                             <div className="edit-form password-form">
                                 <h3>Изменить Пароль</h3>
                                 <form onSubmit={handleChangePassword}>
-                                    <div className="form-group">
+                                    <div className="form-group password-input-wrapper">
                                         <label htmlFor="current-password">
                                             Текущий пароль:
                                         </label>
-                                        <input
-                                            id="current-password"
-                                            type="password"
-                                            className="form-input"
-                                            value={passwordForm.current_password}
-                                            onChange={(e) =>
-                                                setPasswordForm({
-                                                    ...passwordForm,
-                                                    current_password: e.target.value
-                                                })
-                                            }
-                                            placeholder="Введите текущий пароль"
-                                        />
+                                        <div className="password-input-container">
+                                            <input
+                                                id="current-password"
+                                                type={showCurrentPassword ? "text" : "password"}
+                                                className="form-input"
+                                                value={passwordForm.current_password}
+                                                onChange={(e) =>
+                                                    setPasswordForm({
+                                                        ...passwordForm,
+                                                        current_password: e.target.value
+                                                    })
+                                                }
+                                                placeholder="Введите текущий пароль"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="password-toggle"
+                                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                title={showCurrentPassword ? "Скрыть пароль" : "Показать пароль"}
+                                            >
+                                                {showCurrentPassword ? "🙈" : "👁️"}
+                                            </button>
+                                        </div>
                                         {passwordErrors.current_password && (
                                             <span className="error-text">
                                                 {passwordErrors.current_password}
@@ -365,21 +385,31 @@ export const Profile: React.FC = () => {
                                         )}
                                     </div>
 
-                                    <div className="form-group">
+                                    <div className="form-group password-input-wrapper">
                                         <label htmlFor="new-password">Новый пароль:</label>
-                                        <input
-                                            id="new-password"
-                                            type="password"
-                                            className="form-input"
-                                            value={passwordForm.new_password}
-                                            onChange={(e) =>
-                                                setPasswordForm({
-                                                    ...passwordForm,
-                                                    new_password: e.target.value
-                                                })
-                                            }
-                                            placeholder="Минимум 8 символов"
-                                        />
+                                        <div className="password-input-container">
+                                            <input
+                                                id="new-password"
+                                                type={showNewPassword ? "text" : "password"}
+                                                className="form-input"
+                                                value={passwordForm.new_password}
+                                                onChange={(e) =>
+                                                    setPasswordForm({
+                                                        ...passwordForm,
+                                                        new_password: e.target.value
+                                                    })
+                                                }
+                                                placeholder="Минимум 8 символов"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="password-toggle"
+                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                title={showNewPassword ? "Скрыть пароль" : "Показать пароль"}
+                                            >
+                                                {showNewPassword ? "🙈" : "👁️"}
+                                            </button>
+                                        </div>
                                         {passwordErrors.new_password && (
                                             <span className="error-text">
                                                 {passwordErrors.new_password}
@@ -392,23 +422,33 @@ export const Profile: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="form-group">
+                                    <div className="form-group password-input-wrapper">
                                         <label htmlFor="confirm-password">
                                             Подтверждение пароля:
                                         </label>
-                                        <input
-                                            id="confirm-password"
-                                            type="password"
-                                            className="form-input"
-                                            value={passwordForm.confirm_password}
-                                            onChange={(e) =>
-                                                setPasswordForm({
-                                                    ...passwordForm,
-                                                    confirm_password: e.target.value
-                                                })
-                                            }
-                                            placeholder="Повторите пароль"
-                                        />
+                                        <div className="password-input-container">
+                                            <input
+                                                id="confirm-password"
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                className="form-input"
+                                                value={passwordForm.confirm_password}
+                                                onChange={(e) =>
+                                                    setPasswordForm({
+                                                        ...passwordForm,
+                                                        confirm_password: e.target.value
+                                                    })
+                                                }
+                                                placeholder="Повторите пароль"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="password-toggle"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                title={showConfirmPassword ? "Скрыть пароль" : "Показать пароль"}
+                                            >
+                                                {showConfirmPassword ? "🙈" : "👁️"}
+                                            </button>
+                                        </div>
                                         {passwordErrors.confirm_password && (
                                             <span className="error-text">
                                                 {passwordErrors.confirm_password}
@@ -435,6 +475,9 @@ export const Profile: React.FC = () => {
                                                     confirm_password: ''
                                                 });
                                                 setPasswordErrors({});
+                                                setShowCurrentPassword(false);
+                                                setShowNewPassword(false);
+                                                setShowConfirmPassword(false);
                                             }}
                                         >
                                             Отмена
