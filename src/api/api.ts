@@ -39,11 +39,15 @@ export const api = {
         };
     },
 
-    processCards: async (fileId: number, maxCards: number = 10): Promise<{message: string; status: string}> => {
+    processCards: async (fileId: number, maxCards: number): Promise<{ success: boolean; status: string }> => {
         const res = await fetch(
-            `${API_BASE}/api/pdf/process-pdf/${fileId}?max_cards=${maxCards}`,
-            { method: 'POST', headers: getAuthHeaders() }
+            `${API_BASE}/api/pdf/process-pdf/${fileId}/start?max_cards=${maxCards}`,
+            {
+                method: 'POST',
+                headers: getAuthHeaders()
+            }
         );
+
         return await handleResponse(res);
     },
 
