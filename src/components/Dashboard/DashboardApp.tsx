@@ -269,7 +269,24 @@ const DashboardApp: React.FC = () => {
                                 className="clear-cards-btn"
                                 disabled={loading}
                             >
-                                🗑️
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    {/* Глаз */}
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    {/* Зрачок */}
+                                    <circle cx="12" cy="12" r="3" />
+                                    {/* Зачёркивание */}
+                                    <line x1="2" y1="2" x2="22" y2="22" />
+                                </svg>
+
                             </button>
                         </div>
 
@@ -374,8 +391,8 @@ const DashboardApp: React.FC = () => {
                                     <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.694-.833-2.464 0L4.197 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                                 </svg>
                             </div>
-                            <p className="modal-text">Очистить все карточки?</p>
-                            <p className="modal-subtext">Все сгенерированные карточки будут удалены без возможности восстановления.</p>
+                            <p className="modal-text">Скрыть все карточки?</p>
+                            <p className="modal-subtext">Все сгенерированные карточки будут скрыты.</p>
                             <div className="modal-stats">
                                 <div className="stat-item">
                                     <span className="stat-label">Всего карточек:</span>
@@ -400,18 +417,29 @@ const DashboardApp: React.FC = () => {
                                 className="modal-btn modal-btn-delete warning"
                                 onClick={confirmClearCards}
                             >
-                                <span className="delete-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                </span>
-                                Очистить все
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    {/* Глаз */}
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    {/* Зрачок */}
+                                    <circle cx="12" cy="12" r="3"/>
+                                    {/* Зачёркивание */}
+                                    <line x1="2" y1="2" x2="22" y2="22"/>
+                                </svg>
+                                Скрыть все
                             </button>
                         </div>
                     </div>
                 </div>
             </main>
-
             <footer className="app-footer">
                 Учебные карточки из PDF • v1.0
             </footer>
