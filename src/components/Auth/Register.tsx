@@ -21,15 +21,28 @@ export const Register: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
+
+            if (!res.ok) {
+                // Если сервер вернул ошибку, читаем текст ошибки
+                const errorData = await res.json();
+                setMessage(errorData.detail || '❌ Ошибка регистрации');
+                return;
+            }
+
             const data = await res.json();
-            if (data.access_token) {
-                login(data.access_token, email);
+
+            // Проверяем, что пришёл токен и email
+            if (data.access_token && data.email) {
+                login(data.access_token, {
+                    email: data.email,
+                    role: data.role || 'user',
+                });
                 navigate('/app');
             } else {
-                setMessage(data.detail || 'Ошибка регистрации');
+                setMessage('❌ Ошибка регистрации: некорректный ответ сервера');
             }
         } catch (err) {
-            setMessage('Ошибка сервера');
+            setMessage('❌ Ошибка сервера');
         } finally {
             setLoading(false);
         }
@@ -51,7 +64,7 @@ export const Register: React.FC = () => {
                     />
                     <input
                         type="password"
-                        placeholder="Придумайте пароль"
+                        placeholder="Введите ваш пароль"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required
@@ -62,7 +75,12 @@ export const Register: React.FC = () => {
                     </button>
                 </form>
                 <div className="auth-switch">
-                    <p>Уже есть аккаунт? <Link to="/login" className="link">Войти</Link></p>
+                    <p>
+                        Уже есть аккаунт?{' '}
+                        <Link to="/login" className="link">
+                            Войти
+                        </Link>
+                    </p>
                 </div>
             </div>
         </div>

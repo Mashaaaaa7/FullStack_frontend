@@ -21,12 +21,19 @@ export const Login: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
+
             const data = await res.json();
+
             if (data.access_token) {
-                login(data.access_token, email);
+                // Используем email из формы, роль по умолчанию 'user'
+                login(data.access_token, {
+                    email: email,
+                    role: 'user',
+                });
+
                 navigate('/app');
             } else {
-                setMessage(data.detail || 'Ошибка входа');
+                setMessage('❌ Неверный email или пароль');
             }
         } catch (err) {
             setMessage('Ошибка сервера');
@@ -68,5 +75,3 @@ export const Login: React.FC = () => {
         </div>
     );
 };
-
-//

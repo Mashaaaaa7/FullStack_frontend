@@ -28,9 +28,7 @@ const DashboardApp: React.FC = () => {
     const [selectedDeckForDelete, setSelectedDeckForDelete] = useState<DeckWithId | null>(null);
 
     useEffect(() => {
-        if (user?.email) {
-            loadDecksFromServer();
-        }
+        if (user?.email) loadDecksFromServer();
     }, [user?.email]);
 
     const loadDecksFromServer = async () => {
@@ -39,11 +37,14 @@ const DashboardApp: React.FC = () => {
             if (response.success && response.pdfs) {
                 setDecks(response.pdfs);
             }
-        } catch (error) {
-            console.error('❌ Ошибка загрузки:', error);
+        } catch (err) {
+            console.error('❌ Ошибка загрузки:', err);
             setMessage('❌ Не удалось загрузить список PDF');
         }
     };
+
+    if (loading) return <p>Загрузка...</p>;
+    if (!user) return <p>Вы не авторизованы</p>;
 
     const loadPage = async (fileId: number, page: number) => {
         try {
@@ -83,18 +84,14 @@ const DashboardApp: React.FC = () => {
 
     const handleCreateCards = async (deck: DeckWithId) => {
         setLoading(true);
-        setMessage('');
-        setProcessingFileId(deck.id);
+        setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
 
         try {
-            setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
-
             await api.processCards(deck.id, maxCards);
-
             let attempts = 0;
+
             while (attempts < 120) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
-
                 const statusRes = await api.getProcessingStatus(deck.id);
 
                 if (statusRes.status === 'completed') {
@@ -106,16 +103,16 @@ const DashboardApp: React.FC = () => {
                 } else if (statusRes.status === 'failed') {
                     throw new Error('Ошибка при обработке');
                 }
-
                 attempts++;
             }
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
         } finally {
             setLoading(false);
-            setProcessingFileId(null);
         }
     };
+
+
 
     const handleDeleteDeck = (deck: DeckWithId) => {
         setSelectedDeckForDelete(deck);
@@ -160,6 +157,7 @@ const DashboardApp: React.FC = () => {
     };
 
     const totalPages = Math.ceil(totalCards / cardsPerPage);
+    if (!user) return <p>Вы не авторизованы</p>;
 
     return (
         <div className="app">
@@ -168,7 +166,8 @@ const DashboardApp: React.FC = () => {
                     <h1>📖 Учебные карточки из PDF</h1>
                     <p>Создавайте карточки для эффективного обучения</p>
                     <div className="header-controls">
-                        <span>Пользователь: {user?.email}</span>
+                        <span>Пользователь: {user.email}</span> |
+                        <span> Роль: {user.role}</span>
                     </div>
                 </div>
             </header>

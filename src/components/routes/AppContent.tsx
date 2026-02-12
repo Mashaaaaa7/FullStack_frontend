@@ -1,18 +1,25 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './Context/AuthContext';
-import { Login } from './components/Auth/Login';
-import { Register } from './components/Auth/Register';
-import { DashboardApp } from './components/Dashboard/DashboardApp';
-import { Profile } from './components/Profile/Profile';
-import { Navbar } from './components/Layout/Navbar';
-import { PrivateRoute } from './components/routes/PrivateRoute';
-import AdminPanel from './components/AdminPanel';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import {useAuth} from "../../Context/AuthContext.tsx";
+import {Login} from "../Auth/Login.tsx";
+import {Register} from "../Auth/Register.tsx";
+import {Navbar} from "../Layout/Navbar.tsx";
+import {PrivateRoute} from "./PrivateRoute.tsx";
+import {DashboardApp} from "../Dashboard/DashboardApp.tsx";
+import {Profile} from "../Profile/Profile.tsx";
+import AdminPanel from "../AdminPanel.tsx";
 
-import './App.css';
 
 const AppContent: React.FC = () => {
     const { user, loading } = useAuth();
+    const navigate = useNavigate();
+
+    // Как только пользователь авторизован — редирект на /app
+    useEffect(() => {
+        if (!loading && user) {
+            navigate('/app', { replace: true });
+        }
+    }, [user, loading, navigate]);
 
     if (loading) return <div className="loading">Загрузка...</div>;
 
@@ -36,7 +43,7 @@ const AppContent: React.FC = () => {
                     <Route path="/profile" element={<Profile />} />
                 </Route>
 
-                {/* Только для админа */}
+                {/* Только админ */}
                 <Route element={<PrivateRoute allowedRoles={['admin']} />}>
                     <Route path="/admin" element={<AdminPanel />} />
                 </Route>
@@ -48,14 +55,4 @@ const AppContent: React.FC = () => {
     );
 };
 
-const App: React.FC = () => {
-    return (
-        <Router>
-            <AuthProvider>
-                <AppContent />
-            </AuthProvider>
-        </Router>
-    );
-};
-
-export default App;
+export default AppContent;
