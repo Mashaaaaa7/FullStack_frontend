@@ -1,19 +1,25 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './Context/AuthContext';
-import { Login } from './components/Auth/Login';
-import { Register } from './components/Auth/Register';
-import { DashboardApp } from './components/Dashboard/DashboardApp';
-import { Profile } from './components/Profile/Profile';
-import { Navbar } from './components/Layout/Navbar';
-import { PrivateRoute } from './components/routes/PrivateRoute';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useAuth } from "../../Context/AuthContext.tsx";
+import { Login } from "../Auth/Login.tsx";
+import { Register } from "../Auth/Register.tsx";
+import { Navbar } from "../Layout/Navbar.tsx";
+import { PrivateRoute } from "./PrivateRoute.tsx";
+import { DashboardApp } from "../Dashboard/DashboardApp.tsx";
+import { Profile } from "../Profile/Profile.tsx";
+import AdminPanel from "../AdminPanel.tsx";
+import {Forbidden} from "../Forbidden.tsx";
 
-import './App.css';
-import {Forbidden} from "./components/Forbidden.tsx";
-import AdminPanel from "./components/AdminPanel/AdminPanel.tsx";
 
 const AppContent: React.FC = () => {
     const { user, loading } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!loading && user) {
+            navigate('/app', { replace: true });
+        }
+    }, [user, loading, navigate]);
 
     if (loading) return <div className="loading">Загрузка...</div>;
 
@@ -35,14 +41,15 @@ const AppContent: React.FC = () => {
                 <Route element={<PrivateRoute allowedRoles={['user', 'admin']} />}>
                     <Route path="/app" element={<DashboardApp />} />
                     <Route path="/profile" element={<Profile />} />
-                    <Route path="/forbidden" element={<Forbidden />} />
                 </Route>
 
-                {/* Только для админа */}
+                {/* Только админ */}
                 <Route element={<PrivateRoute allowedRoles={['admin']} />}>
                     <Route path="/admin" element={<AdminPanel />} />
                 </Route>
 
+                {/* Страница Forbidden */}
+                <Route path="/forbidden" element={<Forbidden />} />
 
                 {/* Любой другой путь → Dashboard */}
                 <Route path="*" element={<Navigate to="/app" replace />} />
@@ -51,14 +58,4 @@ const AppContent: React.FC = () => {
     );
 };
 
-const App: React.FC = () => {
-    return (
-        <Router>
-            <AuthProvider>
-                <AppContent />
-            </AuthProvider>
-        </Router>
-    );
-};
-
-export default App;
+export default AppContent;

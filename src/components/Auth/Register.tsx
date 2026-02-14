@@ -16,20 +16,35 @@ export const Register: React.FC = () => {
         setMessage('');
 
         try {
+            // --- Отправляем запрос на регистрацию ---
             const res = await fetch('http://127.0.0.1:8000/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
+
             const data = await res.json();
-            if (data.access_token) {
-                login(data.access_token, email);
-                navigate('/app');
-            } else {
-                setMessage(data.detail || 'Ошибка регистрации');
+
+            if (!res.ok) {
+                setMessage(data.detail || '❌ Ошибка регистрации');
+                return;
             }
+
+            // --- Формируем объект пользователя для контекста ---
+            const user = {
+                id: data.user_id || 0,
+                email: data.email || email,
+                role: data.role || 'user',
+                token: data.access_token,
+            };
+
+            // --- Логиним и сохраняем refresh token ---
+            login(user, data.refresh_token);
+
+            // --- Переход на Dashboard ---
+            navigate('/app');
         } catch (err) {
-            setMessage('Ошибка сервера');
+            setMessage('❌ Ошибка сервера');
         } finally {
             setLoading(false);
         }
@@ -51,7 +66,7 @@ export const Register: React.FC = () => {
                     />
                     <input
                         type="password"
-                        placeholder="Придумайте пароль"
+                        placeholder="Введите ваш пароль"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required
@@ -62,7 +77,12 @@ export const Register: React.FC = () => {
                     </button>
                 </form>
                 <div className="auth-switch">
-                    <p>Уже есть аккаунт? <Link to="/login" className="link">Войти</Link></p>
+                    <p>
+                        Уже есть аккаунт?{' '}
+                        <Link to="/login" className="link">
+                            Войти
+                        </Link>
+                    </p>
                 </div>
             </div>
         </div>

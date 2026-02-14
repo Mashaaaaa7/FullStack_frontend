@@ -29,6 +29,17 @@ export const Navbar: React.FC = () => {
                 >
                     👤 Профиль
                 </Link>
+
+                {/* Кнопка для админа */}
+                {user.role === 'admin' && (
+                    <Link
+                        to="/admin"
+                        className={`navbar-item ${location.pathname === '/admin' ? 'active' : ''}`}
+                    >
+                        ⚙️ Админ
+                    </Link>
+                )}
+
                 <button onClick={logout} className="navbar-logout">
                     Выйти
                 </button>

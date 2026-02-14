@@ -32,3 +32,12 @@ export interface ActionHistory {
 export interface UserProfile {
     email: string;
 }
+
+export type Role = "user" | "admin";
+
+export interface CurrentUser {
+    id: number;
+    username: string;
+    role: Role;
+    token: string;
+}

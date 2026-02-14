@@ -16,20 +16,44 @@ export const Login: React.FC = () => {
         setMessage('');
 
         try {
+            // 1️⃣ Логинимся и получаем access и refresh токены
             const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
             const data = await res.json();
-            if (data.access_token) {
-                login(data.access_token, email);
-                navigate('/app');
-            } else {
-                setMessage(data.detail || 'Ошибка входа');
+
+            if (!res.ok) {
+                setMessage(data.detail || '❌ Ошибка входа');
+                return;
             }
-        } catch (err) {
-            setMessage('Ошибка сервера');
+
+            const accessToken = data.access_token;
+            const refreshToken = data.refresh_token;
+
+            // 2️⃣ Получаем актуальные данные пользователя
+            const meRes = await fetch('http://127.0.0.1:8000/api/auth/me', {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!meRes.ok) throw new Error('Не удалось получить данные пользователя');
+            const meData = await meRes.json();
+
+            const currentUser = {
+                id: meData.user_id,
+                email: meData.email,
+                role: meData.role, // теперь будет реально "admin" или "user"
+                token: accessToken,
+            };
+
+            // 3️⃣ Логиним пользователя в контекст
+            login(currentUser, refreshToken);
+
+            // 4️⃣ Переходим на Dashboard
+            navigate('/app');
+
+        } catch (err: any) {
+            setMessage(err.message || '❌ Ошибка сервера');
         } finally {
             setLoading(false);
         }
@@ -38,7 +62,7 @@ export const Login: React.FC = () => {
     return (
         <div className="auth-container">
             <div className="auth-form-container">
-                <h2>Вход в систему</h2>
+                <h2>Вход</h2>
                 {message && <div className="message error">{message}</div>}
                 <form onSubmit={handleSubmit} className="auth-form">
                     <input
@@ -62,11 +86,14 @@ export const Login: React.FC = () => {
                     </button>
                 </form>
                 <div className="auth-switch">
-                    <p>Нет аккаунта? <Link to="/register" className="link">Зарегистрироваться</Link></p>
+                    <p>
+                        Нет аккаунта?{' '}
+                        <Link to="/register" className="link">
+                            Зарегистрироваться
+                        </Link>
+                    </p>
                 </div>
             </div>
         </div>
     );
 };
-
-//
