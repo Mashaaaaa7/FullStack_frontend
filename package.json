@@ -12,7 +12,8 @@
     "axios": "^1.13.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.9.4"
+    "react-router-dom": "^7.9.4",
+    "homepage": "."
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
