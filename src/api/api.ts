@@ -1,12 +1,12 @@
 import { UploadResponse, ActionHistory } from '../types';
 
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = 'http://127.0.0.1:8000/api';
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
     };
 };
 
@@ -15,79 +15,112 @@ const handleResponse = async (res: Response) => {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.detail || `HTTP ${res.status}`);
     }
-    return await res.json();
+    return res.json();
 };
 
 export const api = {
-    uploadPDF: async (file: File): Promise<UploadResponse> => {
+    // 🔐 AUTH
+    async login(email: string, password: string) {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        return handleResponse(res);
+    },
+
+    async getMe(token: string) {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        return handleResponse(res);
+    },
+
+    // 📄 PDF
+    async uploadPDF(file: File): Promise<UploadResponse> {
         const formData = new FormData();
         formData.append('file', file);
+
         const token = localStorage.getItem('token');
 
-        const res = await fetch(`${API_BASE}/api/pdf/upload-pdf`, {
+        const res = await fetch(`${API_BASE}/pdf/upload-pdf`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${token}` },
             body: formData
         });
 
-        const data = await handleResponse(res);
-        return {
-            success: true,
-            filename: data.file_name || data.filename,
-            file_id: data.file_id,
-            message: data.message
-        };
+        return handleResponse(res);
     },
 
-    processCards: async (fileId: number, maxCards: number): Promise<{ success: boolean; status: string }> => {
+    async processCards(fileId: number, maxCards: number) {
         const res = await fetch(
-            `${API_BASE}/api/pdf/process-pdf/${fileId}/start?max_cards=${maxCards}`,
+            `${API_BASE}/pdf/process-pdf/${fileId}/start?max_cards=${maxCards}`,
             {
                 method: 'POST',
                 headers: getAuthHeaders()
             }
         );
 
-        return await handleResponse(res);
+        return handleResponse(res);
     },
 
-    getProcessingStatus: async (fileId: number): Promise<{success: boolean; status: string; cards_count: number}> => {
+    async getProcessingStatus(fileId: number) {
         const res = await fetch(
-            `${API_BASE}/api/pdf/processing-status/${fileId}`,
-            { method: 'GET', headers: getAuthHeaders() }
+            `${API_BASE}/pdf/processing-status/${fileId}`,
+            {
+                headers: getAuthHeaders()
+            }
         );
-        return await handleResponse(res);
+
+        return handleResponse(res);
     },
 
-    getCards: async (fileId: number, skip: number = 0, limit: number = 10) => {
+    async getCards(fileId: number, skip = 0, limit = 10) {
         const res = await fetch(
-            `${API_BASE}/api/pdf/cards/${fileId}?skip=${skip}&limit=${limit}`,
-            { method: 'GET', headers: getAuthHeaders() }
+            `${API_BASE}/pdf/cards/${fileId}?skip=${skip}&limit=${limit}`,
+            {
+                headers: getAuthHeaders()
+            }
         );
-        return await handleResponse(res);
+
+        return handleResponse(res);
     },
 
-    listPDFs: async (): Promise<{success: boolean; pdfs: any[]; total: number}> => {
+    async listPDFs() {
         const res = await fetch(
-            `${API_BASE}/api/pdf/pdfs`,
-            { method: 'GET', headers: getAuthHeaders() }
+            `${API_BASE}/pdf/pdfs`,
+            {
+                headers: getAuthHeaders()
+            }
         );
-        return await handleResponse(res);
+
+        return handleResponse(res);
     },
 
-    actionHistory: async (): Promise<{success: boolean; history: ActionHistory[]; total: number}> => {
+    async actionHistory(): Promise<{ success: boolean; history: ActionHistory[]; total: number }> {
         const res = await fetch(
-            `${API_BASE}/api/pdf/history`,
-            { method: 'GET', headers: getAuthHeaders() }
+            `${API_BASE}/pdf/history`,
+            {
+                headers: getAuthHeaders()
+            }
         );
-        return await handleResponse(res);
+
+        return handleResponse(res);
     },
 
-    deleteFile: async (fileId: number): Promise<{success: boolean; message: string}> => {
+    async deleteFile(fileId: number) {
         const res = await fetch(
-            `${API_BASE}/api/pdf/delete-file/${fileId}`,
-            { method: 'DELETE', headers: getAuthHeaders() }
+            `${API_BASE}/pdf/delete-file/${fileId}`,
+            {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            }
         );
-        return await handleResponse(res);
-    },
+
+        return handleResponse(res);
+    }
 };

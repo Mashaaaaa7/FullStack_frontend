@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../Context/AuthContext';
+import { api } from '../../api/api';
+
+type MeResponse = {
+    id: number;
+    email: string;
+    role: 'user' | 'admin';
+};
 
 export const Login: React.FC = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
@@ -16,27 +24,25 @@ export const Login: React.FC = () => {
         setMessage('');
 
         try {
-            const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+            // 1️⃣ Логин — получаем токен
+            const { access_token } = await api.login(email, password);
+
+            // 2️⃣ Запрашиваем данные пользователя
+            const me: MeResponse = await api.getMe(access_token);
+
+            // 3️⃣ Передаем данные в контекст
+            login(access_token, {
+                id: me.id,
+                email: me.email,
+                role: me.role,
+                token: access_token
             });
 
-            const data = await res.json();
+            // 4️⃣ Редирект на Dashboard
+            navigate('/app', { replace: true });
 
-            if (data.access_token) {
-                // Используем email из формы, роль по умолчанию 'user'
-                login(data.access_token, {
-                    email: email,
-                    role: 'user',
-                });
-
-                navigate('/app');
-            } else {
-                setMessage('❌ Неверный email или пароль');
-            }
-        } catch (err) {
-            setMessage('Ошибка сервера');
+        } catch {
+            setMessage('❌ Неверный email или пароль');
         } finally {
             setLoading(false);
         }
@@ -69,7 +75,11 @@ export const Login: React.FC = () => {
                     </button>
                 </form>
                 <div className="auth-switch">
-                    <p>Нет аккаунта? <Link to="/register" className="link">Зарегистрироваться</Link></p>
+                    <p>
+                        Нет аккаунта? <Link to="/register" className="link">
+                        Зарегистрироваться
+                    </Link>
+                    </p>
                 </div>
             </div>
         </div>

@@ -8,7 +8,7 @@ type User = {
 type AuthContextType = {
     user: User | null;
     loading: boolean;
-    login: (token: string, userData: User) => void;
+    login: (token: string, userData: { id: number; email: string; role: "user" | "admin"; token: any }) => void;
     logout: () => void;
 };
 
