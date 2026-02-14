@@ -16,12 +16,12 @@ export const Login: React.FC = () => {
         setMessage('');
 
         try {
+            // 1️⃣ Логинимся и получаем access и refresh токены
             const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
-
             const data = await res.json();
 
             if (!res.ok) {
@@ -29,17 +29,31 @@ export const Login: React.FC = () => {
                 return;
             }
 
-            const user = {
-                id: data.user_id || 0,
-                email: email,
-                role: data.role || 'user',
-                token: data.access_token,
+            const accessToken = data.access_token;
+            const refreshToken = data.refresh_token;
+
+            // 2️⃣ Получаем актуальные данные пользователя
+            const meRes = await fetch('http://127.0.0.1:8000/api/auth/me', {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!meRes.ok) throw new Error('Не удалось получить данные пользователя');
+            const meData = await meRes.json();
+
+            const currentUser = {
+                id: meData.user_id,
+                email: meData.email,
+                role: meData.role, // теперь будет реально "admin" или "user"
+                token: accessToken,
             };
 
-            login(user);
+            // 3️⃣ Логиним пользователя в контекст
+            login(currentUser, refreshToken);
+
+            // 4️⃣ Переходим на Dashboard
             navigate('/app');
-        } catch (err) {
-            setMessage('❌ Ошибка сервера');
+
+        } catch (err: any) {
+            setMessage(err.message || '❌ Ошибка сервера');
         } finally {
             setLoading(false);
         }

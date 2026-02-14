@@ -16,6 +16,7 @@ export const Register: React.FC = () => {
         setMessage('');
 
         try {
+            // --- Отправляем запрос на регистрацию ---
             const res = await fetch('http://127.0.0.1:8000/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -29,15 +30,18 @@ export const Register: React.FC = () => {
                 return;
             }
 
-            // Создаем объект пользователя для контекста
+            // --- Формируем объект пользователя для контекста ---
             const user = {
-                id: data.user_id,   // если бекенд возвращает user_id
+                id: data.user_id || 0,
                 email: data.email || email,
                 role: data.role || 'user',
                 token: data.access_token,
             };
 
-            login(user);
+            // --- Логиним и сохраняем refresh token ---
+            login(user, data.refresh_token);
+
+            // --- Переход на Dashboard ---
             navigate('/app');
         } catch (err) {
             setMessage('❌ Ошибка сервера');
