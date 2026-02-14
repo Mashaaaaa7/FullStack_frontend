@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../Context/AuthContext';
 
 export const Register: React.FC = () => {
-    const { login } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -29,17 +27,6 @@ export const Register: React.FC = () => {
                 setMessage(data.detail || '❌ Ошибка регистрации');
                 return;
             }
-
-            // --- Формируем объект пользователя для контекста ---
-            const user = {
-                id: data.user_id || 0,
-                email: data.email || email,
-                role: data.role || 'user',
-                token: data.access_token,
-            };
-
-            // --- Логиним и сохраняем refresh token ---
-            login(user, data.refresh_token);
 
             // --- Переход на Dashboard ---
             navigate('/app');
