@@ -1,14 +1,17 @@
+// Context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type User = {
+export type User = {
+    id: number;
     email: string;
     role: 'user' | 'admin';
+    token: string;
 };
 
 type AuthContextType = {
     user: User | null;
     loading: boolean;
-    login: (token: string, userData: { id: number; email: string; role: "user" | "admin"; token: any }) => void;
+    login: (userData: User) => void;
     logout: () => void;
 };
 
@@ -19,25 +22,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
-        if (token && userData) {
-            setUser(JSON.parse(userData));
-        }
+        const stored = localStorage.getItem('user');
+        if (stored) setUser(JSON.parse(stored));
         setLoading(false);
     }, []);
 
-    const login = (token: string, userData: User) => {
-        localStorage.setItem('token', token);
+    const login = (userData: User) => {
         localStorage.setItem('user', JSON.stringify(userData));
-
-        // просто используем userData, который пришел с сервера
         setUser(userData);
     };
 
-
     const logout = () => {
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
     };

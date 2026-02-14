@@ -3,6 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../Context/AuthContext';
 import {Forbidden} from "../Forbidden.tsx";
 
+
 type PrivateRouteProps = {
     allowedRoles: ('user' | 'admin')[];
 };

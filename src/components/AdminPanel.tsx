@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {useUser} from "../Context/UserContext.tsx";
+import { useAuth } from "../Context/AuthContext";
 
 interface UserItem {
     id: number;
@@ -8,7 +8,7 @@ interface UserItem {
 }
 
 const AdminPanel: React.FC = () => {
-    const { user } = useUser();
+    const { user } = useAuth();
     const [users, setUsers] = useState<UserItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -42,7 +42,7 @@ const AdminPanel: React.FC = () => {
             });
 
             if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
-            await fetchUsers(); // Обновляем список после изменения
+            await fetchUsers();
         } catch (err: any) {
             setError(err.message || "Не удалось изменить роль");
         }
@@ -73,10 +73,14 @@ const AdminPanel: React.FC = () => {
                         <td>{u.role}</td>
                         <td>
                             {u.role !== "admin" && (
-                                <button onClick={() => updateRole(u.id, "admin")}>Сделать админом</button>
+                                <button onClick={() => updateRole(u.id, "admin")}>
+                                    Сделать админом
+                                </button>
                             )}
                             {u.role !== "user" && (
-                                <button onClick={() => updateRole(u.id, "user")}>Сделать пользователем</button>
+                                <button onClick={() => updateRole(u.id, "user")}>
+                                    Сделать пользователем
+                                </button>
                             )}
                         </td>
                     </tr>

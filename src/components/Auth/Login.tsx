@@ -3,12 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../Context/AuthContext';
 import { api } from '../../api/api';
 
-type MeResponse = {
-    id: number;
-    email: string;
-    role: 'user' | 'admin';
-};
-
 export const Login: React.FC = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -24,23 +18,17 @@ export const Login: React.FC = () => {
         setMessage('');
 
         try {
-            // 1️⃣ Логин — получаем токен
             const { access_token } = await api.login(email, password);
+            const me = await api.getMe(access_token); // { id, email, role }
 
-            // 2️⃣ Запрашиваем данные пользователя
-            const me: MeResponse = await api.getMe(access_token);
-
-            // 3️⃣ Передаем данные в контекст
-            login(access_token, {
+            login({
                 id: me.id,
                 email: me.email,
                 role: me.role,
                 token: access_token
             });
 
-            // 4️⃣ Редирект на Dashboard
-            navigate('/app', { replace: true });
-
+            navigate('/app');
         } catch {
             setMessage('❌ Неверный email или пароль');
         } finally {
@@ -76,9 +64,7 @@ export const Login: React.FC = () => {
                 </form>
                 <div className="auth-switch">
                     <p>
-                        Нет аккаунта? <Link to="/register" className="link">
-                        Зарегистрироваться
-                    </Link>
+                        Нет аккаунта? <Link to="/register" className="link">Зарегистрироваться</Link>
                     </p>
                 </div>
             </div>
