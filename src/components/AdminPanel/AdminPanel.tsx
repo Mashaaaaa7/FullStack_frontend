@@ -43,7 +43,7 @@ const AdminPanel: React.FC = () => {
         if (!user) return;
 
         if (targetUserId === user.id) {
-            alert("❌ Нельзя менять свою роль самому!");
+            // Вместо alert теперь ничего не делаем — предупреждение отображается в таблице
             return;
         }
 
@@ -101,36 +101,43 @@ const AdminPanel: React.FC = () => {
                     </tr>
                     </thead>
                     <tbody>
-                    {users.map((u) => (
-                        <tr key={u.id}>
-                            <td>{u.email}</td>
-                            <td>
-                                    <span className={`role-badge role-${u.role}`}>
-                                        {u.role === "admin" ? "Администратор" : "Пользователь"}
-                                    </span>
-                            </td>
-                            <td className="actions-cell">
-                                {u.role !== "admin" && (
-                                    <button
-                                        className="action-button action-admin"
-                                        onClick={() => updateRole(u.id, "admin")}
-                                    >
-                                        <span>👑</span>
-                                        Сделать админом
-                                    </button>
-                                )}
-                                {u.role !== "user" && (
-                                    <button
-                                        className="action-button action-user"
-                                        onClick={() => updateRole(u.id, "user")}
-                                    >
-                                        <span>👤</span>
-                                        Сделать пользователем
-                                    </button>
-                                )}
-                            </td>
-                        </tr>
-                    ))}
+                    {users.map((u) => {
+                        const isSelf = u.id === user?.id; // проверка, что это сама себя
+                        return (
+                            <tr key={u.id}>
+                                <td>{u.email}</td>
+                                <td>
+                                        <span className={`role-badge role-${u.role}`}>
+                                            {u.role === "admin" ? "Администратор" : "Пользователь"}
+                                        </span>
+                                </td>
+                                <td className="actions-cell">
+                                    {isSelf ? (
+                                        <span className="warning">❌ Нельзя менять свою роль</span>
+                                    ) : (
+                                        <>
+                                            {u.role !== "admin" && (
+                                                <button
+                                                    className="action-button action-admin"
+                                                    onClick={() => updateRole(u.id, "admin")}
+                                                >
+                                                    <span>👑</span> Сделать админом
+                                                </button>
+                                            )}
+                                            {u.role !== "user" && (
+                                                <button
+                                                    className="action-button action-user"
+                                                    onClick={() => updateRole(u.id, "user")}
+                                                >
+                                                    <span>👤</span> Сделать пользователем
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </td>
+                            </tr>
+                        );
+                    })}
                     </tbody>
                 </table>
             </div>

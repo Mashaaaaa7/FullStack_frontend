@@ -294,6 +294,13 @@
     padding-right: 25px;
 }
 
+.warning {
+    color: red;
+    font-size: 0.9rem;
+    margin-left: 10px;
+}
+
+
 /* Стили для пустого состояния */
 .empty-state {
     text-align: center;
