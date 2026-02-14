@@ -3,7 +3,7 @@ import { useAuth } from "../Context/AuthContext";
 
 interface UserItem {
     id: number;
-    username: string;
+    email: string;
     role: "user" | "admin";
 }
 
@@ -14,15 +14,23 @@ const AdminPanel: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const fetchUsers = async () => {
+        if (!user) return;
+
         try {
             setLoading(true);
-            const res = await fetch("/api/admin/users", {
-                headers: { Authorization: `Bearer ${user?.token}` },
+            const res = await fetch("http://127.0.0.1:8000/api/admin/users", {
+                headers: {
+                    Authorization: `Bearer ${user.token}`,
+                    "Content-Type": "application/json",
+                },
             });
 
-            if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+            if (!res.ok) {
+                throw new Error(`Ошибка: ${res.status}`);
+            }
+
             const data = await res.json();
-            setUsers(data.users);
+            setUsers(data.users || []);
         } catch (err: any) {
             setError(err.message || "Не удалось загрузить пользователей");
         } finally {
@@ -31,17 +39,22 @@ const AdminPanel: React.FC = () => {
     };
 
     const updateRole = async (userId: number, newRole: "user" | "admin") => {
+        if (!user) return;
+
         try {
-            const res = await fetch(`/api/admin/users/${userId}/role`, {
+            const res = await fetch(`http://127.0.0.1:8000/api/admin/users/${userId}/role`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${user?.token}`,
+                    Authorization: `Bearer ${user.token}`,
                 },
                 body: JSON.stringify({ role: newRole }),
             });
 
-            if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+            if (!res.ok) {
+                throw new Error(`Ошибка: ${res.status}`);
+            }
+
             await fetchUsers();
         } catch (err: any) {
             setError(err.message || "Не удалось изменить роль");
@@ -61,7 +74,7 @@ const AdminPanel: React.FC = () => {
             <table>
                 <thead>
                 <tr>
-                    <th>Имя пользователя</th>
+                    <th>Email</th>
                     <th>Роль</th>
                     <th>Действия</th>
                 </tr>
@@ -69,7 +82,7 @@ const AdminPanel: React.FC = () => {
                 <tbody>
                 {users.map((u) => (
                     <tr key={u.id}>
-                        <td>{u.username}</td>
+                        <td>{u.email}</td>
                         <td>{u.role}</td>
                         <td>
                             {u.role !== "admin" && (

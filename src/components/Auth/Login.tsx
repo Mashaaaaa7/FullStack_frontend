@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../Context/AuthContext';
-import { api } from '../../api/api';
 
 export const Login: React.FC = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
-
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
@@ -18,19 +16,30 @@ export const Login: React.FC = () => {
         setMessage('');
 
         try {
-            const { access_token } = await api.login(email, password);
-            const me = await api.getMe(access_token); // { id, email, role }
-
-            login({
-                id: me.id,
-                email: me.email,
-                role: me.role,
-                token: access_token
+            const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
             });
 
+            const data = await res.json();
+
+            if (!res.ok) {
+                setMessage(data.detail || '❌ Ошибка входа');
+                return;
+            }
+
+            const user = {
+                id: data.user_id || 0,
+                email: email,
+                role: data.role || 'user',
+                token: data.access_token,
+            };
+
+            login(user);
             navigate('/app');
-        } catch {
-            setMessage('❌ Неверный email или пароль');
+        } catch (err) {
+            setMessage('❌ Ошибка сервера');
         } finally {
             setLoading(false);
         }
@@ -39,7 +48,7 @@ export const Login: React.FC = () => {
     return (
         <div className="auth-container">
             <div className="auth-form-container">
-                <h2>Вход в систему</h2>
+                <h2>Вход</h2>
                 {message && <div className="message error">{message}</div>}
                 <form onSubmit={handleSubmit} className="auth-form">
                     <input
@@ -64,7 +73,10 @@ export const Login: React.FC = () => {
                 </form>
                 <div className="auth-switch">
                     <p>
-                        Нет аккаунта? <Link to="/register" className="link">Зарегистрироваться</Link>
+                        Нет аккаунта?{' '}
+                        <Link to="/register" className="link">
+                            Зарегистрироваться
+                        </Link>
                     </p>
                 </div>
             </div>

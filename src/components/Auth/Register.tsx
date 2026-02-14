@@ -22,25 +22,23 @@ export const Register: React.FC = () => {
                 body: JSON.stringify({ email, password }),
             });
 
+            const data = await res.json();
+
             if (!res.ok) {
-                // Если сервер вернул ошибку, читаем текст ошибки
-                const errorData = await res.json();
-                setMessage(errorData.detail || '❌ Ошибка регистрации');
+                setMessage(data.detail || '❌ Ошибка регистрации');
                 return;
             }
 
-            const data = await res.json();
+            // Создаем объект пользователя для контекста
+            const user = {
+                id: data.user_id,   // если бекенд возвращает user_id
+                email: data.email || email,
+                role: data.role || 'user',
+                token: data.access_token,
+            };
 
-            // Проверяем, что пришёл токен и email
-            if (data.access_token && data.email) {
-                login(data.access_token, {
-                    email: data.email,
-                    role: data.role || 'user',
-                });
-                navigate('/app');
-            } else {
-                setMessage('❌ Ошибка регистрации: некорректный ответ сервера');
-            }
+            login(user);
+            navigate('/app');
         } catch (err) {
             setMessage('❌ Ошибка сервера');
         } finally {
