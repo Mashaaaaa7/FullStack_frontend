@@ -10,6 +10,7 @@ import { PrivateRoute } from './components/routes/PrivateRoute';
 import AdminPanel from './components/AdminPanel';
 
 import './App.css';
+import {Forbidden} from "./components/Forbidden.tsx";
 
 const AppContent: React.FC = () => {
     const { user, loading } = useAuth();
@@ -34,12 +35,14 @@ const AppContent: React.FC = () => {
                 <Route element={<PrivateRoute allowedRoles={['user', 'admin']} />}>
                     <Route path="/app" element={<DashboardApp />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/forbidden" element={<Forbidden />} />
                 </Route>
 
                 {/* Только для админа */}
                 <Route element={<PrivateRoute allowedRoles={['admin']} />}>
                     <Route path="/admin" element={<AdminPanel />} />
                 </Route>
+
 
                 {/* Любой другой путь → Dashboard */}
                 <Route path="*" element={<Navigate to="/app" replace />} />

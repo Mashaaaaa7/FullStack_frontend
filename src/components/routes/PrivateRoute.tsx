@@ -1,9 +1,9 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import {useAuth} from "../../Context/AuthContext.tsx";
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../../Context/AuthContext";
 
 interface PrivateRouteProps {
-    allowedRoles: ('user' | 'admin')[];
+    allowedRoles: string[];
 }
 
 export const PrivateRoute: React.FC<PrivateRouteProps> = ({ allowedRoles }) => {
@@ -11,9 +11,13 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ allowedRoles }) => {
 
     if (loading) return <div>Загрузка...</div>;
 
-    if (!user) return <Navigate to="/login" replace />;
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
 
-    if (!allowedRoles.includes(user.role)) return <Navigate to="/app" replace />;
+    if (!allowedRoles.includes(user.role)) {
+        return <Navigate to="/forbidden" replace />;
+    }
 
     return <Outlet />;
 };
