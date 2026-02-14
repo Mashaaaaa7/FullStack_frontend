@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import {useUser} from "../../Context/UserContext.tsx";
 
-const Dashboard: React.FC = () => {
+const AdminDashboard: React.FC = () => {
     const { user } = useUser();
 
     return (
@@ -17,9 +17,10 @@ const Dashboard: React.FC = () => {
                 {user?.role === "admin" && (
                     <li><Link to="/admin">Админ-панель</Link></li>
                 )}
+
             </ul>
         </div>
     );
 };
 
-export default Dashboard;
+export default AdminDashboard;
