@@ -42,7 +42,7 @@ export const Login: React.FC = () => {
             const currentUser = {
                 id: meData.user_id,
                 email: meData.email,
-                role: meData.role, // теперь будет реально "admin" или "user"
+                role: meData.role,
                 token: accessToken,
             };
 
