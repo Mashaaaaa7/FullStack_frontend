@@ -7,10 +7,10 @@ import { DashboardApp } from './components/Dashboard/DashboardApp';
 import { Profile } from './components/Profile/Profile';
 import { Navbar } from './components/Layout/Navbar';
 import { PrivateRoute } from './components/routes/PrivateRoute';
-import AdminPanel from './components/AdminPanel';
 
 import './App.css';
 import {Forbidden} from "./components/Forbidden.tsx";
+import AdminPanel from "./components/AdminPanel/AdminPanel.tsx";
 
 const AppContent: React.FC = () => {
     const { user, loading } = useAuth();
