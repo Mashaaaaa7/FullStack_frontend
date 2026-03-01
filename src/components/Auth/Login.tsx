@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import {useAuth} from "../../Context/AuthContext.tsx";
+import { useAuth } from '../../Context/AuthContext';
+import { authApi } from '../../api/api';
 
 export const Login: React.FC = () => {
     const { login } = useAuth();
@@ -16,44 +17,24 @@ export const Login: React.FC = () => {
         setMessage('');
 
         try {
-            // 1️⃣ Логинимся и получаем access и refresh токены
-            const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-            const data = await res.json();
-
-            if (!res.ok) {
-                setMessage(data.detail || '❌ Ошибка входа');
-                return;
-            }
-
+            const data = await authApi.login(email, password);
             const accessToken = data.access_token;
-            const refreshToken = data.refresh_token;
 
-            // 2️⃣ Получаем актуальные данные пользователя
-            const meRes = await fetch('http://127.0.0.1:8000/api/auth/me', {
-                headers: { Authorization: `Bearer ${accessToken}` },
-            });
-            if (!meRes.ok) throw new Error('Не удалось получить данные пользователя');
-            const meData = await meRes.json();
+            localStorage.setItem('access_token', accessToken);
+
+            const userData = await authApi.getMe();
 
             const currentUser = {
-                id: meData.user_id,
-                email: meData.email,
-                role: meData.role, // теперь будет реально "admin" или "user"
+                id: userData.user_id,
+                email: userData.email,
+                role: userData.role,
                 token: accessToken,
             };
 
-            // 3️⃣ Логиним пользователя в контекст
-            login(currentUser, refreshToken);
-
-            // 4️⃣ Переходим на Dashboard
+            login(currentUser);
             navigate('/app');
-
         } catch (err: any) {
-            setMessage(err.message || '❌ Ошибка сервера');
+            setMessage(err.response?.data?.detail || err.message || '❌ Ошибка входа');
         } finally {
             setLoading(false);
         }
@@ -67,7 +48,7 @@ export const Login: React.FC = () => {
                 <form onSubmit={handleSubmit} className="auth-form">
                     <input
                         type="email"
-                        placeholder="Введите ваш email"
+                        placeholder="Email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         required
@@ -75,7 +56,7 @@ export const Login: React.FC = () => {
                     />
                     <input
                         type="password"
-                        placeholder="Введите ваш пароль"
+                        placeholder="Пароль"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required

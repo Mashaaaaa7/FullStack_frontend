@@ -1,126 +1,87 @@
+import axios from 'axios';
 import { UploadResponse, ActionHistory } from '../types';
 
 const API_BASE = 'http://127.0.0.1:8000/api';
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    };
-};
+const api = axios.create({
+    baseURL: API_BASE,
+    withCredentials: true,
+    headers: { 'Content-Type': 'application/json' },
+});
 
-const handleResponse = async (res: Response) => {
-    if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP ${res.status}`);
+// Перехватчик запросов: добавляем access token из localStorage
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
-    return res.json();
+    return config;
+});
+
+// Перехватчик ответов: обработка 401 (обновление токена)
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            try {
+                const { data } = await axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true });
+                localStorage.setItem('access_token', data.access_token);
+                originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
+                return api(originalRequest);
+            } catch {
+                localStorage.removeItem('access_token');
+                window.location.href = '/login';
+                return Promise.reject(error);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
+// === API для аутентификации ===
+export const authApi = {
+    login: (email: string, password: string) =>
+        api.post('/auth/login', { email, password }).then(res => res.data),
+
+    getMe: () => api.get('/profile/me').then(res => res.data),
+
+    logout: () => api.post('/auth/logout').then(res => res.data),
 };
 
-export const api = {
-    // 🔐 AUTH
-    async login(email: string, password: string) {
-        const res = await fetch(`${API_BASE}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-
-        return handleResponse(res);
-    },
-
-    async getMe(token: string) {
-        const res = await fetch(`${API_BASE}/auth/me`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        return handleResponse(res);
-    },
-
-    // 📄 PDF
-    async uploadPDF(file: File): Promise<UploadResponse> {
+// === API для работы с PDF ===
+export const pdfApi = {
+    uploadPDF: (file: File): Promise<UploadResponse> => {
         const formData = new FormData();
         formData.append('file', file);
-
-        const token = localStorage.getItem('token');
-
-        const res = await fetch(`${API_BASE}/pdf/upload-pdf`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData
-        });
-
-        return handleResponse(res);
+        return api.post('/pdf/upload-pdf', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        }).then(res => res.data);
     },
 
-    async processCards(fileId: number, maxCards: number) {
-        const res = await fetch(
-            `${API_BASE}/pdf/process-pdf/${fileId}/start?max_cards=${maxCards}`,
-            {
-                method: 'POST',
-                headers: getAuthHeaders()
-            }
-        );
+    processCards: (fileId: number, maxCards: number) =>
+        api.post(`/pdf/process-pdf/${fileId}/start?max_cards=${maxCards}`).then(res => res.data),
 
-        return handleResponse(res);
-    },
+    getCards: (fileId: number, skip = 0, limit = 10) =>
+        api.get(`/pdf/cards/${fileId}?skip=${skip}&limit=${limit}`).then(res => res.data),
 
-    async getProcessingStatus(fileId: number) {
-        const res = await fetch(
-            `${API_BASE}/pdf/processing-status/${fileId}`,
-            {
-                headers: getAuthHeaders()
-            }
-        );
+    listPDFs: () => api.get('/pdf/pdfs').then(res => res.data),
 
-        return handleResponse(res);
-    },
+    getHistory: (): Promise<{ success: boolean; history: ActionHistory[]; total: number }> =>
+        api.get('/pdf/history').then(res => res.data),
 
-    async getCards(fileId: number, skip = 0, limit = 10) {
-        const res = await fetch(
-            `${API_BASE}/pdf/cards/${fileId}?skip=${skip}&limit=${limit}`,
-            {
-                headers: getAuthHeaders()
-            }
-        );
+    deleteFile: (fileId: number) => api.delete(`/pdf/delete-file/${fileId}`).then(res => res.data),
 
-        return handleResponse(res);
-    },
-
-    async listPDFs() {
-        const res = await fetch(
-            `${API_BASE}/pdf/pdfs`,
-            {
-                headers: getAuthHeaders()
-            }
-        );
-
-        return handleResponse(res);
-    },
-
-    async actionHistory(): Promise<{ success: boolean; history: ActionHistory[]; total: number }> {
-        const res = await fetch(
-            `${API_BASE}/pdf/history`,
-            {
-                headers: getAuthHeaders()
-            }
-        );
-
-        return handleResponse(res);
-    },
-
-    async deleteFile(fileId: number) {
-        const res = await fetch(
-            `${API_BASE}/pdf/delete-file/${fileId}`,
-            {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            }
-        );
-
-        return handleResponse(res);
-    }
+    // Если нужен метод для получения статуса обработки (если есть на бэкенде)
+    getProcessingStatus: (fileId: number) => api.get(`/pdf/processing-status/${fileId}`).then(res => res.data),
 };
+
+// === API для администратора ===
+export const adminApi = {
+    listUsers: () => api.get('/admin/users').then(res => res.data),
+    updateUserRole: (userId: number, role: 'user' | 'admin') =>
+        api.put(`/admin/users/${userId}/role`, { role }).then(res => res.data),
+};
+
+export default api;

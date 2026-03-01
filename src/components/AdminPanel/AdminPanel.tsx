@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../Context/AuthContext";
 import "./AdminPanel.css";
+import { adminApi } from "../../api/api";
 
 interface UserItem {
     id: number;
@@ -18,14 +19,7 @@ const AdminPanel: React.FC = () => {
         if (!user) return;
         try {
             setLoading(true);
-            const res = await fetch("http://127.0.0.1:8000/api/admin/users", {
-                headers: {
-                    Authorization: `Bearer ${user.token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-            if (!res.ok) throw new Error(`Ошибка ${res.status}`);
-            const data = await res.json();
+            const data = await adminApi.listUsers(); // data = { users: [...] }
             const usersList: UserItem[] = (data.users || []).map((u: any) => ({
                 id: Number(u.user_id),
                 email: u.email,
@@ -43,26 +37,12 @@ const AdminPanel: React.FC = () => {
         if (!user) return;
 
         if (targetUserId === user.id) {
-            // Вместо alert теперь ничего не делаем — предупреждение отображается в таблице
+            // Запрет на изменение своей роли – просто не делаем запрос
             return;
         }
 
         try {
-            const res = await fetch(
-                `http://127.0.0.1:8000/api/admin/users/${targetUserId}/role`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${user.token}`,
-                    },
-                    body: JSON.stringify({ role: newRole }),
-                }
-            );
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(`Ошибка ${res.status}: ${text}`);
-            }
+            await adminApi.updateUserRole(targetUserId, newRole);
             await fetchUsers();
         } catch (err: any) {
             setError(err.message || "Не удалось изменить роль");
@@ -90,7 +70,6 @@ const AdminPanel: React.FC = () => {
     return (
         <div className="admin-container">
             <h1>Админ-панель</h1>
-
             <div className="table-wrapper">
                 <table className="admin-table">
                     <thead>
@@ -102,14 +81,14 @@ const AdminPanel: React.FC = () => {
                     </thead>
                     <tbody>
                     {users.map((u) => {
-                        const isSelf = u.id === user?.id; // проверка, что это сама себя
+                        const isSelf = u.id === user?.id;
                         return (
                             <tr key={u.id}>
                                 <td>{u.email}</td>
                                 <td>
-                                        <span className={`role-badge role-${u.role}`}>
-                                            {u.role === "admin" ? "Администратор" : "Пользователь"}
-                                        </span>
+                                    <span className={`role-badge role-${u.role}`}>
+                                        {u.role === "admin" ? "Администратор" : "Пользователь"}
+                                    </span>
                                 </td>
                                 <td className="actions-cell">
                                     {isSelf ? (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Deck, Card } from '../../types';
-import { api } from '../../api/api';
+import {pdfApi} from '../../api/api';
 import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
 
@@ -33,7 +33,7 @@ const DashboardApp: React.FC = () => {
 
     const loadDecksFromServer = async () => {
         try {
-            const response = await api.listPDFs();
+            const response = await pdfApi.listPDFs();
             if (response.success && response.pdfs) {
                 setDecks(response.pdfs);
             }
@@ -50,7 +50,7 @@ const DashboardApp: React.FC = () => {
         try {
             setLoading(true);
             const skip = (page - 1) * cardsPerPage;
-            const response = await api.getCards(fileId, skip, cardsPerPage);
+            const response = await pdfApi.getCards(fileId, skip, cardsPerPage);
 
             setCards(response.cards);
             setTotalCards(response.total);
@@ -71,7 +71,7 @@ const DashboardApp: React.FC = () => {
         setMessage('');
 
         try {
-            await api.uploadPDF(file);
+            await pdfApi.uploadPDF(file);
             await loadDecksFromServer();
             setMessage('✅ Файл загружен успешно');
             e.target.value = '';
@@ -87,12 +87,12 @@ const DashboardApp: React.FC = () => {
         setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
 
         try {
-            await api.processCards(deck.id, maxCards);
+            await pdfApi.processCards(deck.id, maxCards);
             let attempts = 0;
 
             while (attempts < 120) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                const statusRes = await api.getProcessingStatus(deck.id);
+                const statusRes = await pdfApi.getProcessingStatus(deck.id);
 
                 if (statusRes.status === 'completed') {
                     setSelectedDeck(deck);
@@ -126,7 +126,7 @@ const DashboardApp: React.FC = () => {
         setDeleteModalOpen(false);
 
         try {
-            await api.deleteFile(selectedDeckForDelete.id);
+            await pdfApi.deleteFile(selectedDeckForDelete.id);
             setDecks(decks.filter(d => d.id !== selectedDeckForDelete.id));
             setMessage('✅ Файл удален');
 

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Context/AuthContext';
-import { api } from '../../api/api';
 import { ActionHistory } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
+import {pdfApi} from "../../api/api.ts";
 
 interface ChangePasswordForm {
     current_password: string;
@@ -50,7 +50,7 @@ export const Profile: React.FC = () => {
     const loadHistory = async () => {
         try {
             setLoading(true);
-            const historyRes = await api.actionHistory();
+            const historyRes = await pdfApi.getHistory();
 
             if (historyRes.success && Array.isArray(historyRes.history)) {
                 setActionHistory(historyRes.history);
@@ -135,7 +135,6 @@ export const Profile: React.FC = () => {
         }
     };
 
-    // ===== ВАЛИДАЦИЯ EMAIL =====
     const validateEmailForm = (): boolean => {
         const errors: Partial<ChangeEmailForm> = {};
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -156,7 +155,6 @@ export const Profile: React.FC = () => {
         return Object.keys(errors).length === 0;
     };
 
-    // ===== СМЕНА EMAIL =====
     const handleChangeEmail = async (e: React.FormEvent) => {
         e.preventDefault();
 
