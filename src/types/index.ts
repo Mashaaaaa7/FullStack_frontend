@@ -29,8 +29,11 @@ export interface ActionHistory {
     details?: string;
 }
 
-export interface UserProfile {
+export interface GetMe {
+    id: number;
     email: string;
+    role: 'user' | 'admin';
+    token: string;
 }
 
 export type Role = "user" | "admin";
