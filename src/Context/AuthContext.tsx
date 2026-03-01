@@ -1,106 +1,68 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { authApi } from '../api/api';
+import { GetMe } from "../types";
 
-export type User = {
-    id: number;
-    email: string;
-    role: "user" | "admin";
-    token: string; // access_token
-};
-
-type AuthContextType = {
-    user: User | null;
+interface AuthContextType {
+    user: GetMe | null;
     loading: boolean;
-    login: (user: User, refreshToken: string) => void;
-    logout: () => void;
-};
+    login: (user: GetMe) => void;
+    logout: () => Promise<void>;
+    isAuthenticated: boolean;
+    hasRole: (role: 'user' | 'admin') => boolean;
+}
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [refreshToken, setRefreshToken] = useState<string | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [user, setUser] = useState<GetMe | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // --- Инициализация при загрузке страницы ---
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        const storedRefresh = localStorage.getItem("refreshToken");
-        if (storedUser && storedRefresh) {
-            setUser(JSON.parse(storedUser));
-            setRefreshToken(storedRefresh);
-        }
-        setLoading(false);
+        const initAuth = async () => {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                try {
+                    const userData = await authApi.getMe();
+                    setUser({
+                        id: userData.user_id,
+                        email: userData.email,
+                        role: userData.role,
+                        token: token,
+                    });
+                } catch {
+                    localStorage.removeItem('access_token');
+                }
+            }
+            setLoading(false);
+        };
+        initAuth();
     }, []);
 
-    // --- Авто-обновление access_token каждые N секунд ---
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (refreshToken) refreshAccessToken();
-        }, 5 * 60 * 1000); // каждые 5 минут
-        return () => clearInterval(interval);
-    }, [refreshToken]);
-
-    const login = (newUser: User, newRefreshToken: string) => {
+    const login = (newUser: GetMe) => {
         setUser(newUser);
-        setRefreshToken(newRefreshToken);
-        localStorage.setItem("user", JSON.stringify(newUser));
-        localStorage.setItem("refreshToken", newRefreshToken);
     };
 
-    const logout = () => {
-        setUser(null);
-        setRefreshToken(null);
-        localStorage.removeItem("user");
-        localStorage.removeItem("refreshToken");
-    };
-
-    const refreshAccessToken = async () => {
+    const logout = async () => {
         try {
-            if (!refreshToken) return;
-
-            // Получаем новый access_token
-            const res = await fetch("http://127.0.0.1:8000/api/auth/refresh-token", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ refresh_token: refreshToken }),
-            });
-            if (!res.ok) throw new Error("Не удалось обновить токен");
-            const data = await res.json();
-
-            // Обновляем токен
-            if (user) {
-                const updatedUser = { ...user, token: data.access_token };
-                setUser(updatedUser);
-                localStorage.setItem("user", JSON.stringify(updatedUser));
-            }
-
-            // Подтягиваем актуальные данные пользователя с сервера
-            const meRes = await fetch("http://127.0.0.1:8000/api/auth/me", {
-                headers: { Authorization: `Bearer ${data.access_token}` },
-            });
-            if (!meRes.ok) throw new Error("Не удалось получить данные пользователя");
-            const meData = await meRes.json();
-
-            const refreshedUser: User = {
-                id: meData.user_id,
-                email: meData.email,
-                role: meData.role,
-                token: data.access_token,
-            };
-            setUser(refreshedUser);
-            localStorage.setItem("user", JSON.stringify(refreshedUser));
-
-        } catch (err) {
-            console.error("Ошибка при обновлении токена:", err);
-            logout(); // при ошибке выкидываем пользователя
+            await authApi.logout();
+        } finally {
+            localStorage.removeItem('access_token');
+            setUser(null);
         }
     };
 
+    const isAuthenticated = !!user;
+    const hasRole = (role: 'user' | 'admin') => user?.role === role;
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated, hasRole }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) throw new Error('useAuth must be used within AuthProvider');
+    return context;
+};

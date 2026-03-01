@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Context/AuthContext';
-import { api } from '../../api/api';
-import { ActionHistory } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
+import { pdfApi } from '../../api/api';
+import { ActionHistory } from '../../types';
 
 interface ChangePasswordForm {
     current_password: string;
@@ -22,7 +22,7 @@ export const Profile: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-    const navigate = useNavigate(); // Хук для перенаправления
+    const navigate = useNavigate();
 
     // Состояние для смены пароля
     const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -50,10 +50,13 @@ export const Profile: React.FC = () => {
     const loadHistory = async () => {
         try {
             setLoading(true);
-            const historyRes = await api.actionHistory();
-
+            const historyRes = await pdfApi.getHistory();
             if (historyRes.success && Array.isArray(historyRes.history)) {
-                setActionHistory(historyRes.history);
+                const historyWithTimestamp = historyRes.history.map((item: any) => ({
+                    ...item,
+                    timestamp: item.created_at
+                }));
+                setActionHistory(historyWithTimestamp);
             }
         } catch (error) {
             console.error('Ошибка:', error);
@@ -96,12 +99,11 @@ export const Profile: React.FC = () => {
 
         try {
             setPasswordLoading(true);
-            // Используем ваш существующий fetch запрос
             const response = await fetch('/api/profile/change-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                    Authorization: `Bearer ${localStorage.getItem('access_token')}` // исправлено
                 },
                 body: JSON.stringify({
                     current_password: passwordForm.current_password,
@@ -116,12 +118,10 @@ export const Profile: React.FC = () => {
                 setMessage('✅ Пароль успешно изменён. Пожалуйста, войдите снова.');
                 setMessageType('success');
 
-                // Даем пользователю прочитать сообщение 1.5 секунды и выкидываем
                 setTimeout(() => {
-                    logout(); // Чистим токен и состояние пользователя
-                    navigate('/login'); // Редирект на логин
+                    logout();
+                    navigate('/login');
                 }, 1500);
-
             } else {
                 setMessage(`❌ ${data.detail || 'Ошибка при смене пароля'}`);
                 setMessageType('error');
@@ -135,7 +135,6 @@ export const Profile: React.FC = () => {
         }
     };
 
-    // ===== ВАЛИДАЦИЯ EMAIL =====
     const validateEmailForm = (): boolean => {
         const errors: Partial<ChangeEmailForm> = {};
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -156,7 +155,6 @@ export const Profile: React.FC = () => {
         return Object.keys(errors).length === 0;
     };
 
-    // ===== СМЕНА EMAIL =====
     const handleChangeEmail = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -168,7 +166,7 @@ export const Profile: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                    Authorization: `Bearer ${localStorage.getItem('access_token')}` // исправлено
                 },
                 body: JSON.stringify({
                     new_email: emailForm.new_email,
@@ -179,16 +177,13 @@ export const Profile: React.FC = () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Успех!
                 setMessage('✅ Email успешно изменён. Пожалуйста, войдите снова.');
                 setMessageType('success');
 
-                // Также выкидываем пользователя, так как старый email (логин) больше невалиден
                 setTimeout(() => {
                     logout();
                     navigate('/login');
                 }, 1500);
-
             } else {
                 setMessage(`❌ ${data.detail || 'Ошибка при смене email'}`);
                 setMessageType('error');

@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Deck, Card } from '../../types';
-import { api } from '../../api/api';
 import { useAuth } from '../../Context/AuthContext';
+import { pdfApi } from '../../api/api';
 import '../../App.css';
 
 interface DeckWithId extends Deck {
     id: number;
 }
-
 const DashboardApp: React.FC = () => {
     const { user } = useAuth();
     const [decks, setDecks] = useState<DeckWithId[]>([]);
@@ -15,14 +14,11 @@ const DashboardApp: React.FC = () => {
     const [selectedDeck, setSelectedDeck] = useState<DeckWithId | null>(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [processingFileId, setProcessingFileId] = useState<number | null>(null);
     const [maxCards, setMaxCards] = useState(10);
-    const [processingFileId] = useState<number | null>(null);
-
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCards, setTotalCards] = useState(0);
     const cardsPerPage = 6;
-
-    // Состояние для модальных окон
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleteCardsModalOpen, setDeleteCardsModalOpen] = useState(false);
     const [selectedDeckForDelete, setSelectedDeckForDelete] = useState<DeckWithId | null>(null);
@@ -33,7 +29,7 @@ const DashboardApp: React.FC = () => {
 
     const loadDecksFromServer = async () => {
         try {
-            const response = await api.listPDFs();
+            const response = await pdfApi.listPDFs();
             if (response.success && response.pdfs) {
                 setDecks(response.pdfs);
             }
@@ -43,15 +39,11 @@ const DashboardApp: React.FC = () => {
         }
     };
 
-    if (loading) return <p>Загрузка...</p>;
-    if (!user) return <p>Вы не авторизованы</p>;
-
     const loadPage = async (fileId: number, page: number) => {
         try {
             setLoading(true);
             const skip = (page - 1) * cardsPerPage;
-            const response = await api.getCards(fileId, skip, cardsPerPage);
-
+            const response = await pdfApi.getCards(fileId, skip, cardsPerPage);
             setCards(response.cards);
             setTotalCards(response.total);
             setCurrentPage(page);
@@ -71,7 +63,7 @@ const DashboardApp: React.FC = () => {
         setMessage('');
 
         try {
-            await api.uploadPDF(file);
+            await pdfApi.uploadPDF(file);
             await loadDecksFromServer();
             setMessage('✅ Файл загружен успешно');
             e.target.value = '';
@@ -83,36 +75,19 @@ const DashboardApp: React.FC = () => {
     };
 
     const handleCreateCards = async (deck: DeckWithId) => {
+        setProcessingFileId(deck.id); // устанавливаем
         setLoading(true);
-        setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
-
+        setMessage(`🔄 Генерация запущена (макс. ${maxCards})...`);
         try {
-            await api.processCards(deck.id, maxCards);
-            let attempts = 0;
-
-            while (attempts < 120) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                const statusRes = await api.getProcessingStatus(deck.id);
-
-                if (statusRes.status === 'completed') {
-                    setSelectedDeck(deck);
-                    setCurrentPage(1);
-                    setMessage('✅ Карточки готовы!');
-                    await loadPage(deck.id, 1);
-                    break;
-                } else if (statusRes.status === 'failed') {
-                    throw new Error('Ошибка при обработке');
-                }
-                attempts++;
-            }
+            await pdfApi.processCards(deck.id, maxCards);
+            setMessage('✅ Обработка запущена. Карточки появятся через некоторое время.');
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
         } finally {
+            setProcessingFileId(null); // сбрасываем
             setLoading(false);
         }
     };
-
-
 
     const handleDeleteDeck = (deck: DeckWithId) => {
         setSelectedDeckForDelete(deck);
@@ -126,7 +101,7 @@ const DashboardApp: React.FC = () => {
         setDeleteModalOpen(false);
 
         try {
-            await api.deleteFile(selectedDeckForDelete.id);
+            await pdfApi.deleteFile(selectedDeckForDelete.id);
             setDecks(decks.filter(d => d.id !== selectedDeckForDelete.id));
             setMessage('✅ Файл удален');
 
@@ -157,6 +132,7 @@ const DashboardApp: React.FC = () => {
     };
 
     const totalPages = Math.ceil(totalCards / cardsPerPage);
+
     if (!user) return <p>Вы не авторизованы</p>;
 
     return (
