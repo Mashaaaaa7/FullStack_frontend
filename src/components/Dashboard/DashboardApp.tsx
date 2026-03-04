@@ -14,9 +14,9 @@ const DashboardApp: React.FC = () => {
     const [cards, setCards] = useState<Card[]>([]);
     const [selectedDeck, setSelectedDeck] = useState<DeckWithId | null>(null);
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
+    const [message, setMessage] = useState('')
+    const [processingFileId, setProcessingFileId] = useState<number | null>(null);
     const [maxCards, setMaxCards] = useState(10);
-    const [processingFileId] = useState<number | null>(null);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCards, setTotalCards] = useState(0);
@@ -83,36 +83,48 @@ const DashboardApp: React.FC = () => {
     };
 
     const handleCreateCards = async (deck: DeckWithId) => {
-        setLoading(true);
+        setProcessingFileId(deck.id);
         setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
 
         try {
+            // 1. Запускаем обработку один раз
             await pdfApi.processCards(deck.id, maxCards);
+            setMessage('✅ Обработка запущена. Карточки появятся через несколько секунд.');
+
+            // 2. Пытаемся получить карточки через некоторое время
             let attempts = 0;
+            const maxAttempts = 30; // 30 * 2 сек = 60 сек максимум
 
-            while (attempts < 120) {
+            while (attempts < maxAttempts) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                const statusRes = await pdfApi.getProcessingStatus(deck.id);
 
-                if (statusRes.status === 'completed') {
-                    setSelectedDeck(deck);
-                    setCurrentPage(1);
-                    setMessage('✅ Карточки готовы!');
-                    await loadPage(deck.id, 1);
-                    break;
-                } else if (statusRes.status === 'failed') {
-                    throw new Error('Ошибка при обработке');
+                try {
+                    // Пытаемся загрузить карточки для этого файла
+                    const response = await pdfApi.getCards(deck.id, 0, 1);
+                    if (response.total > 0) {
+                        // Карточки готовы!
+                        if (selectedDeck?.id === deck.id) {
+                            await loadPage(deck.id, currentPage);
+                        }
+                        setMessage('✅ Карточки готовы!');
+                        break;
+                    }
+                } catch (err) {
+                    // Игнорируем ошибки загрузки — карточки ещё не готовы
+                    console.log('Карточки ещё не готовы...');
                 }
                 attempts++;
+            }
+
+            if (attempts >= maxAttempts) {
+                setMessage('⚠️ Обработка заняла больше времени. Обновите страницу позже.');
             }
         } catch (err: any) {
             setMessage(`❌ ${err.message}`);
         } finally {
-            setLoading(false);
+            setProcessingFileId(null);
         }
     };
-
-
 
     const handleDeleteDeck = (deck: DeckWithId) => {
         setSelectedDeckForDelete(deck);
