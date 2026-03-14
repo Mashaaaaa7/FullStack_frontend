@@ -9,8 +9,9 @@ import { Navbar } from './components/Layout/Navbar';
 import { PrivateRoute } from './components/routes/PrivateRoute';
 
 import './App.css';
-import {Forbidden} from "./components/Forbidden.tsx";
+
 import AdminPanel from "./components/AdminPanel/AdminPanel.tsx";
+import {Forbidden} from "./components/routes/Forbidden.tsx";
 
 const AppContent: React.FC = () => {
     const { user, loading } = useAuth();
