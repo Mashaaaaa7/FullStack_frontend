@@ -7,8 +7,9 @@ import { Navbar } from "../Layout/Navbar.tsx";
 import { PrivateRoute } from "./PrivateRoute.tsx";
 import { DashboardApp } from "../Dashboard/DashboardApp.tsx";
 import { Profile } from "../Profile/Profile.tsx";
-import {Forbidden} from "../Forbidden.tsx";
+
 import AdminPanel from "../AdminPanel/AdminPanel.tsx";
+import {Forbidden} from "./Forbidden.tsx";
 
 
 const AppContent: React.FC = () => {

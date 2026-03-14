@@ -40,7 +40,7 @@ api.interceptors.response.use(
     }
 );
 
-// === API для аутентификации ===
+// API для аутентификации
 export const authApi = {
     login: (email: string, password: string) =>
         api.post('/auth/login', { email, password }).then(res => res.data),
@@ -52,32 +52,37 @@ export const authApi = {
 
 // === API для работы с PDF ===
 export const pdfApi = {
-    uploadPDF: (file: File): Promise<UploadResponse> => {
+    uploadPDF: (file: File, onProgress?: (percentage: number) => void): Promise<UploadResponse> => {
         const formData = new FormData();
         formData.append('file', file);
-        return api.post('/pdf/upload-pdf', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+        return api.post('/pdf/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (progressEvent) => {
+                if (progressEvent.total && onProgress) {
+                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(percent);
+                }
+            },
         }).then(res => res.data);
     },
 
     processCards: (fileId: number, maxCards: number) =>
-        api.post(`/pdf/process-pdf/${fileId}/start?max_cards=${maxCards}`).then(res => res.data),
+        api.post(`/pdf/${fileId}/process?max_cards=${maxCards}`).then(res => res.data),
 
     getCards: (fileId: number, skip = 0, limit = 10) =>
         api.get(`/pdf/cards/${fileId}?skip=${skip}&limit=${limit}`).then(res => res.data),
 
-    listPDFs: () => api.get('/pdf/pdfs').then(res => res.data),
+    listPDFs: () => api.get('/pdf/list').then(res => res.data),
 
     getHistory: (): Promise<{ success: boolean; history: ActionHistory[]; total: number }> =>
         api.get('/pdf/history').then(res => res.data),
 
-    deleteFile: (fileId: number) => api.delete(`/pdf/delete-file/${fileId}`).then(res => res.data),
+    deleteFile: (fileId: number) => api.delete(`/pdf/${fileId}`).then(res => res.data),
 
-    // Если нужен метод для получения статуса обработки (если есть на бэкенде)
-    getProcessingStatus: (fileId: number) => api.get(`/pdf/processing-status/${fileId}`).then(res => res.data),
+    getDownloadUrl: (fileId: number) => api.get(`/pdf/${fileId}/download`).then(res => res.data),
 };
 
-// === API для администратора ===
+// API для администратора
 export const adminApi = {
     listUsers: () => api.get('/admin/users').then(res => res.data),
     updateUserRole: (userId: number, role: 'user' | 'admin') =>

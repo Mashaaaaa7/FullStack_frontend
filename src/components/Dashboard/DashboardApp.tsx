@@ -3,13 +3,14 @@ import { Deck, Card } from '../../types';
 import {pdfApi} from '../../api/api';
 import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
+import FileUploader from "./FileUploader";
 
 interface DeckWithId extends Deck {
     id: number;
 }
 
-const DashboardApp: React.FC = () => {
-    const { user } = useAuth();
+export const DashboardApp: React.FC = () => {
+    const {user} = useAuth();
     const [decks, setDecks] = useState<DeckWithId[]>([]);
     const [cards, setCards] = useState<Card[]>([]);
     const [selectedDeck, setSelectedDeck] = useState<DeckWithId | null>(null);
@@ -28,14 +29,30 @@ const DashboardApp: React.FC = () => {
     const [selectedDeckForDelete, setSelectedDeckForDelete] = useState<DeckWithId | null>(null);
 
     useEffect(() => {
-        if (user?.email) loadDecksFromServer();
+        if (user?.email) {
+            loadDecksFromServer().catch(console.error);
+        }
     }, [user?.email]);
 
     const loadDecksFromServer = async () => {
         try {
             const response = await pdfApi.listPDFs();
-            if (response.success && response.pdfs) {
-                setDecks(response.pdfs);
+            console.log('Ответ от listPDFs:', response); // для отладки
+            if (response.success && Array.isArray(response.items)) {
+                // Преобразуем элементы: добавляем поле name из file_name
+                const decksData = response.items.map((item: any) => ({
+                    id: item.id,
+                    name: item.file_name,      // ← ключевое: file_name → name
+                    size: item.size,
+                    status: item.status,
+                    created_at: item.created_at,
+                    owner_id: item.owner_id,
+                    owner_email: item.owner_email,
+                }));
+                setDecks(decksData);
+            } else {
+                console.error('Неверный формат ответа:', response);
+                setMessage('❌ Не удалось обработать список файлов');
             }
         } catch (err) {
             console.error('❌ Ошибка загрузки:', err);
@@ -63,35 +80,15 @@ const DashboardApp: React.FC = () => {
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setLoading(true);
-        setMessage('');
-
-        try {
-            await pdfApi.uploadPDF(file);
-            await loadDecksFromServer();
-            setMessage('✅ Файл загружен успешно');
-            e.target.value = '';
-        } catch (err: any) {
-            setMessage(`❌ ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleCreateCards = async (deck: DeckWithId) => {
         setProcessingFileId(deck.id);
         setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
 
         try {
-            // 1. Запускаем обработку один раз
             await pdfApi.processCards(deck.id, maxCards);
             setMessage('✅ Обработка запущена. Карточки появятся через несколько секунд.');
 
-            // 2. Пытаемся получить карточки через некоторое время
             let attempts = 0;
             const maxAttempts = 30; // 30 * 2 сек = 60 сек максимум
 
@@ -99,18 +96,15 @@ const DashboardApp: React.FC = () => {
                 await new Promise(resolve => setTimeout(resolve, 2000));
 
                 try {
-                    // Пытаемся загрузить карточки для этого файла
                     const response = await pdfApi.getCards(deck.id, 0, 1);
                     if (response.total > 0) {
-                        // Карточки готовы!
                         if (selectedDeck?.id === deck.id) {
-                            await loadPage(deck.id, currentPage);
+                            await loadPage(deck.id, currentPage).catch(console.error);
                         }
                         setMessage('✅ Карточки готовы!');
                         break;
                     }
                 } catch (err) {
-                    // Игнорируем ошибки загрузки — карточки ещё не готовы
                     console.log('Карточки ещё не готовы...');
                 }
                 attempts++;
@@ -187,19 +181,14 @@ const DashboardApp: React.FC = () => {
             <main className="app-main">
                 <section className="upload-section">
                     <h2>📤 Загрузите PDF</h2>
-                    <div className="upload-area">
-                        <input
-                            type="file"
-                            accept=".pdf"
-                            onChange={handleFileUpload}
-                            disabled={loading}
-                            id="file-upload"
-                        />
-                        <label htmlFor="file-upload" className="upload-label">
-                            {loading ? 'Загрузка...' : 'Выберите PDF'}
-                        </label>
-                    </div>
-
+                    <FileUploader
+                        onUploadSuccess={async () => {
+                            setMessage('✅ Файл загружен успешно');
+                            await loadDecksFromServer();
+                        }}
+                        maxSizeMB={10}
+                        allowedTypes={['application/pdf']}
+                    />
                     <div className="slider-container">
                         <label className="slider-label">
                             📊 Максимум карточек: <span className="slider-value">{maxCards}</span>
@@ -216,7 +205,8 @@ const DashboardApp: React.FC = () => {
                 </section>
 
                 {message && (
-                    <div className={`message ${message.includes('❌') ? 'error' : message.includes('✅') ? 'success' : 'warning'}`}>
+                    <div
+                        className={`message ${message.includes('❌') ? 'error' : message.includes('✅') ? 'success' : 'warning'}`}>
                         {message}
                     </div>
                 )}
@@ -242,7 +232,7 @@ const DashboardApp: React.FC = () => {
                                         onClick={() => {
                                             setSelectedDeck(deck);
                                             setCurrentPage(1);
-                                            loadPage(deck.id, 1);
+                                            loadPage(deck.id, 1).catch(console.error);
                                         }}
                                         disabled={loading}
                                         className="view-btn"
@@ -263,7 +253,7 @@ const DashboardApp: React.FC = () => {
                         {decks.length === 0 && (
                             <div className="empty-state">
                                 <p>Нет загруженных PDF файлов</p>
-                                <p className="empty-subtitle">Загрузите первый PDF файл, чтобы начать создавать карточки</p>
+                                <p className="empty-subtitle">Загрузите PDF файл, чтобы начать создавать карточки</p>
                             </div>
                         )}
                     </div>
@@ -291,11 +281,11 @@ const DashboardApp: React.FC = () => {
                                     strokeLinejoin="round"
                                 >
                                     {/* Глаз */}
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                     {/* Зрачок */}
-                                    <circle cx="12" cy="12" r="3" />
+                                    <circle cx="12" cy="12" r="3"/>
                                     {/* Зачёркивание */}
-                                    <line x1="2" y1="2" x2="22" y2="22" />
+                                    <line x1="2" y1="2" x2="22" y2="22"/>
                                 </svg>
 
                             </button>
@@ -319,7 +309,7 @@ const DashboardApp: React.FC = () => {
                         {totalPages > 1 && (
                             <div className="pagination">
                                 <button
-                                    onClick={() => loadPage(selectedDeck.id, Math.max(1, currentPage - 1))}
+                                    onClick={() => loadPage(selectedDeck.id, Math.max(1, currentPage - 1)).catch(console.error)}
                                     disabled={currentPage === 1 || loading}
                                     className="pagination-btn"
                                 >
@@ -327,10 +317,10 @@ const DashboardApp: React.FC = () => {
                                 </button>
 
                                 <div className="pagination-pages">
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    {Array.from({length: totalPages}, (_, i) => i + 1).map(page => (
                                         <button
                                             key={page}
-                                            onClick={() => loadPage(selectedDeck.id, page)}
+                                            onClick={() => loadPage(selectedDeck.id, page).catch(console.error)}
                                             disabled={loading}
                                             className={`pagination-page ${currentPage === page ? 'active' : ''}`}
                                         >
@@ -340,7 +330,7 @@ const DashboardApp: React.FC = () => {
                                 </div>
 
                                 <button
-                                    onClick={() => loadPage(selectedDeck.id, Math.min(totalPages, currentPage + 1))}
+                                    onClick={() => loadPage(selectedDeck.id, Math.min(totalPages, currentPage + 1)).catch(console.error)}
                                     disabled={currentPage === totalPages || loading}
                                     className="pagination-btn"
                                 >
@@ -352,7 +342,8 @@ const DashboardApp: React.FC = () => {
                 )}
 
                 {/* Модальное окно для подтверждения удаления колоды */}
-                <div className={`modal ${deleteModalOpen ? 'show' : ''}`} style={{ display: deleteModalOpen ? 'flex' : 'none' }}>
+                <div className={`modal ${deleteModalOpen ? 'show' : ''}`}
+                     style={{display: deleteModalOpen ? 'flex' : 'none'}}>
                     <div className="modal-content">
                         <div className="modal-header">
                             <h3>Подтверждение удаления</h3>
@@ -360,8 +351,9 @@ const DashboardApp: React.FC = () => {
                         </div>
                         <div className="modal-body">
                             <div className="modal-icon">
-                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#dc3545" strokeWidth="1.5">
-                                    <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#dc3545"
+                                     strokeWidth="1.5">
+                                    <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
                             <p className="modal-text">Вы уверены, что хотите удалить эту колоду?</p>
@@ -379,8 +371,10 @@ const DashboardApp: React.FC = () => {
                                 onClick={confirmDeleteDeck}
                             >
                                 <span className="delete-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         strokeWidth="2">
+                                        <path
+                                            d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
                                     </svg>
                                 </span>
                                 Удалить
@@ -390,16 +384,20 @@ const DashboardApp: React.FC = () => {
                 </div>
 
                 {/* Модальное окно для удаления всех карточек */}
-                <div className={`modal ${deleteCardsModalOpen ? 'show' : ''}`} style={{ display: deleteCardsModalOpen ? 'flex' : 'none' }}>
+                <div className={`modal ${deleteCardsModalOpen ? 'show' : ''}`}
+                     style={{display: deleteCardsModalOpen ? 'flex' : 'none'}}>
                     <div className="modal-content">
                         <div className="modal-header">
                             <h3>Очистить карточки</h3>
-                            <button className="modal-close" onClick={() => setDeleteCardsModalOpen(false)}>&times;</button>
+                            <button className="modal-close"
+                                    onClick={() => setDeleteCardsModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
                             <div className="modal-icon warning">
-                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fd7e14" strokeWidth="1.5">
-                                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.694-.833-2.464 0L4.197 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fd7e14"
+                                     strokeWidth="1.5">
+                                    <path
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.694-.833-2.464 0L4.197 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                                 </svg>
                             </div>
                             <p className="modal-text">Скрыть все карточки?</p>
@@ -456,6 +454,4 @@ const DashboardApp: React.FC = () => {
             </footer>
         </div>
     );
-};
-
-export { DashboardApp };
+}
