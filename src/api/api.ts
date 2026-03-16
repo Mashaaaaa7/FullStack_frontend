@@ -50,7 +50,6 @@ export const authApi = {
     logout: () => api.post('/auth/logout').then(res => res.data),
 };
 
-// === API для работы с PDF ===
 export const pdfApi = {
     uploadPDF: (file: File, onProgress?: (percentage: number) => void): Promise<UploadResponse> => {
         const formData = new FormData();
@@ -84,7 +83,7 @@ export const pdfApi = {
 
 // API для администратора
 export const adminApi = {
-    listUsers: () => api.get('/admin/users').then(res => res.data),
+    listUsers: (params?: any) => api.get('/admin/users', { params }).then(res => res.data),
     updateUserRole: (userId: number, role: 'user' | 'admin') =>
         api.put(`/admin/users/${userId}/role`, { role }).then(res => res.data),
 };
