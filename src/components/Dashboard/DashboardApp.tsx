@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Deck, Card } from '../../types';
 import { pdfApi } from '../../api/api';
 import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
-
 import { FileList, FileItem } from '../Files/FileList';
-import FileUploader from "../Files/FileUploader.tsx"; // импортируем FileItem
+import FileUploader from "../Files/FileUploader.tsx";
 
 interface DeckWithId extends Deck {
     id: number;
@@ -21,17 +20,32 @@ export const DashboardApp: React.FC = () => {
     const [refreshKey, setRefreshKey] = useState(0);
     const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
     const [processingFileId, setProcessingFileId] = useState<number | null>(null);
-
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCards, setTotalCards] = useState(0);
     const cardsPerPage = 6;
-
     const [deleteCardsModalOpen, setDeleteCardsModalOpen] = useState(false);
 
-    if (loading) return <p>Загрузка...</p>;
-    if (!user) return <p>Вы не авторизованы</p>;
+    // Реф для сохранения позиции скролла
+    const scrollPositionRef = useRef<number>(0);
+
+    // Функция сохранения позиции
+    const saveScrollPosition = () => {
+        scrollPositionRef.current = window.scrollY;
+    };
+
+    // Восстановление позиции после обновления карточек
+    useEffect(() => {
+        if (cards.length > 0 && scrollPositionRef.current > 0) {
+            // Небольшая задержка для гарантии, что DOM обновился
+            requestAnimationFrame(() => {
+                window.scrollTo(0, scrollPositionRef.current);
+                scrollPositionRef.current = 0; // сброс после восстановления
+            });
+        }
+    }, [cards]);
 
     const loadPage = async (fileId: number, page: number) => {
+        saveScrollPosition(); // сохраняем позицию перед загрузкой
         try {
             setLoading(true);
             const skip = (page - 1) * cardsPerPage;
@@ -117,6 +131,7 @@ export const DashboardApp: React.FC = () => {
     };
 
     const handleViewCards = (file: FileItem) => {
+        saveScrollPosition(); // сохраняем позицию
         setSelectedDeck({ id: file.id, name: file.file_name } as DeckWithId);
         setSelectedFileId(file.id);
         setCurrentPage(1);
@@ -124,6 +139,8 @@ export const DashboardApp: React.FC = () => {
     };
 
     const totalPages = Math.ceil(totalCards / cardsPerPage);
+
+    if (!user) return <p>Вы не авторизованы</p>;
 
     return (
         <div className="app">
