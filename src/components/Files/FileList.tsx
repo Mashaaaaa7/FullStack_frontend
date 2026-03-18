@@ -38,6 +38,8 @@ export const FileList: React.FC<FileListProps> = ({
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null);
 
     const page = Number(searchParams.get('page')) || 1;
     const limit = Number(searchParams.get('limit')) || 10;
@@ -77,15 +79,26 @@ export const FileList: React.FC<FileListProps> = ({
         fetchFiles();
     }, [page, limit, status, debouncedSearch, sort, refreshTrigger]);
 
-    const handleDelete = async (fileId: number) => {
+    const handleDeleteClick = (fileId: number) => {
+        const file = files.find(f => f.id === fileId);
+        if (file) {
+            setFileToDelete(file);
+            setDeleteModalOpen(true);
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!fileToDelete) return;
+        setDeleteModalOpen(false);
         try {
-            await api.delete(`/pdf/${fileId}`);
-            setFiles(prev => prev.filter(f => f.id !== fileId));
-            setTotal(prev => prev - 1);
+            await api.delete(`/pdf/${fileToDelete.id}`);
+            await fetchFiles(); // перезагружаем список с сервера
             toast.success('Файл удалён');
         } catch (err: any) {
             const detail = err.response?.data?.detail || 'Ошибка удаления';
             toast.error(detail);
+        } finally {
+            setFileToDelete(null);
         }
     };
 
@@ -179,7 +192,7 @@ export const FileList: React.FC<FileListProps> = ({
                     <FileCard
                         key={file.id}
                         file={file}
-                        onDelete={handleDelete}
+                        onDelete={handleDeleteClick}
                         onGenerate={onGenerateCards}
                         onView={onViewCards}
                         isSelected={file.id === selectedFileId}
@@ -195,6 +208,39 @@ export const FileList: React.FC<FileListProps> = ({
                 total={total}
                 onPageChange={handlePageChange}
             />
+
+            {/* Модальное окно для подтверждения удаления файла */}
+            <div className={`modal ${deleteModalOpen ? 'show' : ''}`} style={{ display: deleteModalOpen ? 'flex' : 'none' }}>
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h3>Подтверждение удаления</h3>
+                        <button className="modal-close" onClick={() => setDeleteModalOpen(false)}>&times;</button>
+                    </div>
+                    <div className="modal-body">
+                        <div className="modal-icon">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#dc3545" strokeWidth="1.5">
+                                <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <p className="modal-text">Вы уверены, что хотите удалить файл?</p>
+                        <p className="modal-subtext">{fileToDelete?.file_name}</p>
+                        <p className="modal-subtext">Это действие нельзя будет отменить.</p>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="modal-btn modal-btn-cancel" onClick={() => setDeleteModalOpen(false)}>
+                            Отмена
+                        </button>
+                        <button className="modal-btn modal-btn-delete" onClick={confirmDelete}>
+                            <span className="delete-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+                                </svg>
+                            </span>
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

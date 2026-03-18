@@ -33,14 +33,7 @@ export const FileCard: React.FC<FileCardProps> = ({
     };
 
     const handleDelete = async () => {
-        if (window.confirm('Удалить файл?')) {
-            try {
-                await api.delete(`/pdf/${file.id}`);
-                onDelete(file.id);
-            } catch (error) {
-                alert('Ошибка при удалении');
-            }
-        }
+        onDelete(file.id);
     };
 
     return (
