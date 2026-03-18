@@ -1,7 +1,11 @@
 export interface Deck {
     id: number;
     name: string;
-    file_size: number;
+    size?: number;
+    status?: string;
+    created_at?: string;
+    owner_id?: number;
+    owner_email?: string;
 }
 
 export interface Card {

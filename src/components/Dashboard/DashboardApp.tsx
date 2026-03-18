@@ -1,52 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Deck, Card } from '../../types';
-import {pdfApi} from '../../api/api';
+import { pdfApi } from '../../api/api';
 import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
+import { FileList, FileItem } from '../Files/FileList';
+import FileUploader from "../Files/FileUploader.tsx";
 
 interface DeckWithId extends Deck {
     id: number;
 }
 
-const DashboardApp: React.FC = () => {
+export const DashboardApp: React.FC = () => {
     const { user } = useAuth();
-    const [decks, setDecks] = useState<DeckWithId[]>([]);
     const [cards, setCards] = useState<Card[]>([]);
     const [selectedDeck, setSelectedDeck] = useState<DeckWithId | null>(null);
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('')
-    const [processingFileId, setProcessingFileId] = useState<number | null>(null);
+    const [message, setMessage] = useState('');
     const [maxCards, setMaxCards] = useState(10);
-
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
+    const [processingFileId, setProcessingFileId] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCards, setTotalCards] = useState(0);
     const cardsPerPage = 6;
-
-    // Состояние для модальных окон
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleteCardsModalOpen, setDeleteCardsModalOpen] = useState(false);
-    const [selectedDeckForDelete, setSelectedDeckForDelete] = useState<DeckWithId | null>(null);
 
-    useEffect(() => {
-        if (user?.email) loadDecksFromServer();
-    }, [user?.email]);
+    // Реф для сохранения позиции скролла
+    const scrollPositionRef = useRef<number>(0);
 
-    const loadDecksFromServer = async () => {
-        try {
-            const response = await pdfApi.listPDFs();
-            if (response.success && response.pdfs) {
-                setDecks(response.pdfs);
-            }
-        } catch (err) {
-            console.error('❌ Ошибка загрузки:', err);
-            setMessage('❌ Не удалось загрузить список PDF');
-        }
+    // Функция сохранения позиции
+    const saveScrollPosition = () => {
+        scrollPositionRef.current = window.scrollY;
     };
 
-    if (loading) return <p>Загрузка...</p>;
-    if (!user) return <p>Вы не авторизованы</p>;
+    // Восстановление позиции после обновления карточек
+    useEffect(() => {
+        if (cards.length > 0 && scrollPositionRef.current > 0) {
+            // Небольшая задержка для гарантии, что DOM обновился
+            requestAnimationFrame(() => {
+                window.scrollTo(0, scrollPositionRef.current);
+                scrollPositionRef.current = 0; // сброс после восстановления
+            });
+        }
+    }, [cards]);
 
     const loadPage = async (fileId: number, page: number) => {
+        saveScrollPosition(); // сохраняем позицию перед загрузкой
         try {
             setLoading(true);
             const skip = (page - 1) * cardsPerPage;
@@ -63,54 +62,30 @@ const DashboardApp: React.FC = () => {
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setLoading(true);
-        setMessage('');
-
-        try {
-            await pdfApi.uploadPDF(file);
-            await loadDecksFromServer();
-            setMessage('✅ Файл загружен успешно');
-            e.target.value = '';
-        } catch (err: any) {
-            setMessage(`❌ ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleCreateCards = async (deck: DeckWithId) => {
         setProcessingFileId(deck.id);
         setMessage(`🔄 Генерирую карточки (макс. ${maxCards})...`);
 
         try {
-            // 1. Запускаем обработку один раз
             await pdfApi.processCards(deck.id, maxCards);
             setMessage('✅ Обработка запущена. Карточки появятся через несколько секунд.');
 
-            // 2. Пытаемся получить карточки через некоторое время
             let attempts = 0;
-            const maxAttempts = 30; // 30 * 2 сек = 60 сек максимум
+            const maxAttempts = 30;
 
             while (attempts < maxAttempts) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
 
                 try {
-                    // Пытаемся загрузить карточки для этого файла
                     const response = await pdfApi.getCards(deck.id, 0, 1);
                     if (response.total > 0) {
-                        // Карточки готовы!
                         if (selectedDeck?.id === deck.id) {
-                            await loadPage(deck.id, currentPage);
+                            await loadPage(deck.id, currentPage).catch(console.error);
                         }
                         setMessage('✅ Карточки готовы!');
                         break;
                     }
                 } catch (err) {
-                    // Игнорируем ошибки загрузки — карточки ещё не готовы
                     console.log('Карточки ещё не готовы...');
                 }
                 attempts++;
@@ -126,36 +101,6 @@ const DashboardApp: React.FC = () => {
         }
     };
 
-    const handleDeleteDeck = (deck: DeckWithId) => {
-        setSelectedDeckForDelete(deck);
-        setDeleteModalOpen(true);
-    };
-
-    const confirmDeleteDeck = async () => {
-        if (!selectedDeckForDelete) return;
-
-        setLoading(true);
-        setDeleteModalOpen(false);
-
-        try {
-            await pdfApi.deleteFile(selectedDeckForDelete.id);
-            setDecks(decks.filter(d => d.id !== selectedDeckForDelete.id));
-            setMessage('✅ Файл удален');
-
-            if (selectedDeck?.id === selectedDeckForDelete.id) {
-                setCards([]);
-                setSelectedDeck(null);
-                setCurrentPage(1);
-                setTotalCards(0);
-            }
-        } catch (err: any) {
-            setMessage(`❌ ${err.message}`);
-        } finally {
-            setLoading(false);
-            setSelectedDeckForDelete(null);
-        }
-    };
-
     const handleClearCardsClick = () => {
         setDeleteCardsModalOpen(true);
     };
@@ -168,7 +113,33 @@ const DashboardApp: React.FC = () => {
         setDeleteCardsModalOpen(false);
     };
 
+    const handleSelectFile = (file: FileItem) => {
+        setSelectedDeck({ id: file.id, name: file.file_name } as DeckWithId);
+        setSelectedFileId(file.id);
+        setCurrentPage(1);
+        loadPage(file.id, 1);
+    };
+
+    const handleUploadSuccess = () => {
+        setMessage('✅ Файл загружен успешно');
+        setRefreshKey(prev => prev + 1);
+    };
+
+    const handleGenerateCards = async (file: FileItem) => {
+        const deck = { id: file.id, name: file.file_name } as DeckWithId;
+        await handleCreateCards(deck);
+    };
+
+    const handleViewCards = (file: FileItem) => {
+        saveScrollPosition(); // сохраняем позицию
+        setSelectedDeck({ id: file.id, name: file.file_name } as DeckWithId);
+        setSelectedFileId(file.id);
+        setCurrentPage(1);
+        loadPage(file.id, 1);
+    };
+
     const totalPages = Math.ceil(totalCards / cardsPerPage);
+
     if (!user) return <p>Вы не авторизованы</p>;
 
     return (
@@ -187,19 +158,11 @@ const DashboardApp: React.FC = () => {
             <main className="app-main">
                 <section className="upload-section">
                     <h2>📤 Загрузите PDF</h2>
-                    <div className="upload-area">
-                        <input
-                            type="file"
-                            accept=".pdf"
-                            onChange={handleFileUpload}
-                            disabled={loading}
-                            id="file-upload"
-                        />
-                        <label htmlFor="file-upload" className="upload-label">
-                            {loading ? 'Загрузка...' : 'Выберите PDF'}
-                        </label>
-                    </div>
-
+                    <FileUploader
+                        onUploadSuccess={handleUploadSuccess}
+                        maxSizeMB={10}
+                        allowedTypes={['application/pdf']}
+                    />
                     <div className="slider-container">
                         <label className="slider-label">
                             📊 Максимум карточек: <span className="slider-value">{maxCards}</span>
@@ -222,51 +185,15 @@ const DashboardApp: React.FC = () => {
                 )}
 
                 <section className="decks-section">
-                    <h2>📁 Ваши PDF ({decks.length})</h2>
-                    <div className="decks-grid">
-                        {decks.map(deck => (
-                            <div key={deck.id} className="deck-card">
-                                <div className="deck-info">
-                                    <h3>{deck.name}</h3>
-                                </div>
-                                <div className="deck-actions">
-                                    <button
-                                        onClick={() => handleCreateCards(deck)}
-                                        disabled={loading || processingFileId === deck.id}
-                                        className="create-cards-btn"
-                                    >
-                                        ✨ Создать карточки
-                                    </button>
-
-                                    <button
-                                        onClick={() => {
-                                            setSelectedDeck(deck);
-                                            setCurrentPage(1);
-                                            loadPage(deck.id, 1);
-                                        }}
-                                        disabled={loading}
-                                        className="view-btn"
-                                    >
-                                        👁️
-                                    </button>
-
-                                    <button
-                                        onClick={() => handleDeleteDeck(deck)}
-                                        disabled={loading}
-                                        className="delete-btn"
-                                    >
-                                        🗑️ Удалить
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        {decks.length === 0 && (
-                            <div className="empty-state">
-                                <p>Нет загруженных PDF файлов</p>
-                                <p className="empty-subtitle">Загрузите первый PDF файл, чтобы начать создавать карточки</p>
-                            </div>
-                        )}
-                    </div>
+                    <h2>📁 Ваши PDF</h2>
+                    <FileList
+                        onSelectFile={handleSelectFile}
+                        selectedFileId={selectedFileId}
+                        refreshTrigger={refreshKey}
+                        onGenerateCards={handleGenerateCards}
+                        onViewCards={handleViewCards}
+                        processingFileId={processingFileId}
+                    />
                 </section>
 
                 {cards.length > 0 && selectedDeck && (
@@ -280,24 +207,7 @@ const DashboardApp: React.FC = () => {
                                 className="clear-cards-btn"
                                 disabled={loading}
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    {/* Глаз */}
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                    {/* Зрачок */}
-                                    <circle cx="12" cy="12" r="3" />
-                                    {/* Зачёркивание */}
-                                    <line x1="2" y1="2" x2="22" y2="22" />
-                                </svg>
-
+                                {/* иконка */}
                             </button>
                         </div>
 
@@ -319,18 +229,17 @@ const DashboardApp: React.FC = () => {
                         {totalPages > 1 && (
                             <div className="pagination">
                                 <button
-                                    onClick={() => loadPage(selectedDeck.id, Math.max(1, currentPage - 1))}
+                                    onClick={() => loadPage(selectedDeck.id, Math.max(1, currentPage - 1)).catch(console.error)}
                                     disabled={currentPage === 1 || loading}
                                     className="pagination-btn"
                                 >
                                     ← Назад
                                 </button>
-
                                 <div className="pagination-pages">
                                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                                         <button
                                             key={page}
-                                            onClick={() => loadPage(selectedDeck.id, page)}
+                                            onClick={() => loadPage(selectedDeck.id, page).catch(console.error)}
                                             disabled={loading}
                                             className={`pagination-page ${currentPage === page ? 'active' : ''}`}
                                         >
@@ -338,9 +247,8 @@ const DashboardApp: React.FC = () => {
                                         </button>
                                     ))}
                                 </div>
-
                                 <button
-                                    onClick={() => loadPage(selectedDeck.id, Math.min(totalPages, currentPage + 1))}
+                                    onClick={() => loadPage(selectedDeck.id, Math.min(totalPages, currentPage + 1)).catch(console.error)}
                                     disabled={currentPage === totalPages || loading}
                                     className="pagination-btn"
                                 >
@@ -350,44 +258,6 @@ const DashboardApp: React.FC = () => {
                         )}
                     </section>
                 )}
-
-                {/* Модальное окно для подтверждения удаления колоды */}
-                <div className={`modal ${deleteModalOpen ? 'show' : ''}`} style={{ display: deleteModalOpen ? 'flex' : 'none' }}>
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>Подтверждение удаления</h3>
-                            <button className="modal-close" onClick={() => setDeleteModalOpen(false)}>&times;</button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="modal-icon">
-                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#dc3545" strokeWidth="1.5">
-                                    <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <p className="modal-text">Вы уверены, что хотите удалить эту колоду?</p>
-                            <p className="modal-subtext">Это действие нельзя будет отменить.</p>
-                        </div>
-                        <div className="modal-footer">
-                            <button
-                                className="modal-btn modal-btn-cancel"
-                                onClick={() => setDeleteModalOpen(false)}
-                            >
-                                Отмена
-                            </button>
-                            <button
-                                className="modal-btn modal-btn-delete"
-                                onClick={confirmDeleteDeck}
-                            >
-                                <span className="delete-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
-                                    </svg>
-                                </span>
-                                Удалить
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Модальное окно для удаления всех карточек */}
                 <div className={`modal ${deleteCardsModalOpen ? 'show' : ''}`} style={{ display: deleteCardsModalOpen ? 'flex' : 'none' }}>
@@ -418,31 +288,13 @@ const DashboardApp: React.FC = () => {
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button
-                                className="modal-btn modal-btn-cancel"
-                                onClick={() => setDeleteCardsModalOpen(false)}
-                            >
+                            <button className="modal-btn modal-btn-cancel" onClick={() => setDeleteCardsModalOpen(false)}>
                                 Отмена
                             </button>
-                            <button
-                                className="modal-btn modal-btn-delete warning"
-                                onClick={confirmClearCards}
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    {/* Глаз */}
+                            <button className="modal-btn modal-btn-delete warning" onClick={confirmClearCards}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                    {/* Зрачок */}
                                     <circle cx="12" cy="12" r="3"/>
-                                    {/* Зачёркивание */}
                                     <line x1="2" y1="2" x2="22" y2="22"/>
                                 </svg>
                                 Скрыть все
@@ -457,5 +309,3 @@ const DashboardApp: React.FC = () => {
         </div>
     );
 };
-
-export { DashboardApp };
