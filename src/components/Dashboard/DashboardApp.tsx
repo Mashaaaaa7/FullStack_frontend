@@ -5,6 +5,7 @@ import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
 import { FileList, FileItem } from '../Files/FileList';
 import FileUploader from "../Files/FileUploader.tsx";
+import DictionaryWidget from "../DictionaryWidget.tsx";
 
 interface DeckWithId extends Deck {
     id: number;
@@ -143,17 +144,20 @@ export const DashboardApp: React.FC = () => {
     if (!user) return <p>Вы не авторизованы</p>;
 
     return (
-        <div className="app">
-            <header className="app-header">
-                <div className="header-content">
+        <div className="dashboard">
+            <div className="dashboard__header">
+                <header className="app-header">
                     <h1>📖 Учебные карточки из PDF</h1>
                     <p>Создавайте карточки для эффективного обучения</p>
                     <div className="header-controls">
                         <span>Пользователь: {user.email}</span> |
                         <span> Роль: {user.role}</span>
                     </div>
-                </div>
-            </header>
+                </header>
+                <aside className="sidebar">
+                    <DictionaryWidget />
+                </aside>
+            </div>
 
             <main className="app-main">
                 <section className="upload-section">
