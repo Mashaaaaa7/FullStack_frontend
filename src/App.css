@@ -1130,6 +1130,57 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     align-self: flex-start;
 }
 
+/* ========== Страница "О проекте" ========== */
+.about-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    min-height: calc(100vh - 80px); /* чтобы футер был внизу, если нужно */
+}
+
+.about-page main {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.about-page h1 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 2rem;
+    border-bottom: 2px solid #3498db;
+    display: inline-block;
+    padding-bottom: 0.25rem;
+}
+
+.about-page p {
+    margin: 1.5rem 0;
+    line-height: 1.6;
+    color: #555;
+    font-size: 1.1rem;
+}
+
+.about-page .back-link {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.75rem 1.5rem;
+    background: #6c757d;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.about-page .back-link:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
     .dashboard-content {

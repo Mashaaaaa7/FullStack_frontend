@@ -8,6 +8,7 @@ import { Profile } from './components/Profile/Profile';
 import { Navbar } from './components/Layout/Navbar';
 import { PrivateRoute } from './components/routes/PrivateRoute';
 import Home from './components/Home';
+import About from './components/About';
 import './App.css';
 
 import AdminPanel from "./components/AdminPanel/AdminPanel.tsx";
@@ -38,12 +39,13 @@ const AppContent: React.FC = () => {
         );
     }
 
-    // Неавторизованные пользователи
+// внутри if (!user)
     return (
         <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/about" element={<About />} />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
