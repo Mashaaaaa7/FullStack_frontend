@@ -20,6 +20,7 @@ export default function Home() {
                 <div className="cta-buttons">
                     <Link to="/register">Зарегистрироваться</Link>
                     <Link to="/login">Войти</Link>
+                    <a href="/about" className="about-btn">О проекте</a>
                 </div>
             </main>
         </div>

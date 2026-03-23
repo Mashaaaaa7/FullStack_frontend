@@ -38,16 +38,15 @@ const AppContent: React.FC = () => {
         );
     }
 
-    if (!user) {
-        return (
-            <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        );
-    }
+    // Неавторизованные пользователи
+    return (
+        <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+    );
 };
 
 const App: React.FC = () => {
