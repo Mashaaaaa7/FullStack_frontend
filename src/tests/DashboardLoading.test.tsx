@@ -2,37 +2,41 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, vi, beforeEach } from 'vitest';
 import { DashboardApp } from "../components/Dashboard/DashboardApp.tsx";
 
+const mockGetPdfCards = vi.fn();
+
+vi.mock('../api/api', () => ({
+    getPdfCards: mockGetPdfCards,
+}));
+
 beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
 });
 
 describe('Dashboard loading state', () => {
-    it('показывает Dashboard пока API отвечает', async () => {
-        // Мокаем API, который Dashboard использует (например getPdfCards)
-        const mockGetPdfCards = vi.fn(() =>
+    it('показывает loading и затем данные', async () => {
+        mockGetPdfCards.mockImplementation(() =>
             new Promise(resolve =>
-                setTimeout(() => resolve({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }), 200)
+                setTimeout(() =>
+                    resolve({
+                        cards: [{ id: 1, question: 'Q', answer: 'A' }],
+                        total: 1
+                    }), 200
+                )
             )
         );
 
-        vi.mock('../api/api', () => ({
-            getPdfCards: mockGetPdfCards,
-        }));
-
         render(<DashboardApp />);
 
-        // Индикатор загрузки должен быть виден
+        // 1. loading есть
         expect(screen.getByText(/Загрузка/i)).toBeInTheDocument();
 
-        // Ждём окончания загрузки
-        await waitFor(() => expect(screen.queryByText(/Загрузка/i)).not.toBeInTheDocument());
+        // 2. loading исчезает
+        await waitFor(() =>
+            expect(screen.queryByText(/Загрузка/i)).not.toBeInTheDocument()
+        );
 
-        // После загрузки отображаются PDF карточки
-        await waitFor(() =>
-            expect(screen.getByText(/Q/i)).toBeInTheDocument()
-        );
-        await waitFor(() =>
-            expect(screen.getByText(/A/i)).toBeInTheDocument()
-        );
+        // 3. данные появились
+        expect(screen.getByText(/Q/i)).toBeInTheDocument();
+        expect(screen.getByText(/A/i)).toBeInTheDocument();
     });
 });

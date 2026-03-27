@@ -48,25 +48,6 @@ test('login fails with 401 shows error', async ({ loginAsUser }) => {
     await expect(loginAsUser.locator('text=Invalid credentials')).toBeVisible();
 });
 
-test('view PDF cards with fallback on server error', async ({ mockPdfApi }) => {
-    // Мокаем PDF API на 500
-    await mockPdfApi.route('**/api/pdf/**', route =>
-        route.fulfill({
-            status: 500,
-            contentType: 'application/json',
-            body: JSON.stringify({ message: 'Server error' }),
-        })
-    );
-
-    await mockPdfApi.goto('http://localhost:3000/login');
-    await mockPdfApi.fill('input[name="email"]', 'mashavacylieva@gmail.com');
-    await mockPdfApi.fill('input[name="password"]', 'password');
-    await mockPdfApi.click('button:has-text("Login")');
-
-    // Проверяем, что UI показывает fallback
-    await expect(mockPdfApi.locator('text=Не удалось загрузить PDF')).toBeVisible();
-});
-
 test('view PDF cards successfully', async ({ mockPdfApi }) => {
     await mockPdfApi.goto('http://localhost:3000/login');
     await mockPdfApi.fill('input[name="email"]', 'mashavacylieva@gmail.com');
@@ -94,4 +75,21 @@ test('logout redirects to /login and clears session', async ({ loginAsUser }) =>
     // Можно проверить очистку session/localStorage
     const token = await loginAsUser.evaluate(() => localStorage.getItem('token'));
     expect(token).toBeNull();
+});
+
+test('view PDF cards with fallback on server error', async ({ mockPdfApi }) => {
+    await mockPdfApi.route('**/api/pdf/**', route =>
+        route.fulfill({
+            status: 500,
+            contentType: 'application/json',
+            body: JSON.stringify({ message: 'Server error' }),
+        })
+    );
+
+    await mockPdfApi.goto('http://localhost:3000/login');
+    await mockPdfApi.fill('input[name="email"]', 'mashavacylieva@gmail.com');
+    await mockPdfApi.fill('input[name="password"]', 'password');
+    await mockPdfApi.click('button:has-text("Login")');
+
+    await expect(mockPdfApi.locator('text=Не удалось загрузить PDF')).toBeVisible();
 });
