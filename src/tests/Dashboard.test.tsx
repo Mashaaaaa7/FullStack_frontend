@@ -5,6 +5,6 @@ import { DashboardApp } from "../components/Dashboard/DashboardApp.tsx";
 describe('Dashboard', () => {
     it('renders Dashboard page', () => {
         render(<DashboardApp />);
-        expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
+        expect(screen.getByText(/Учебные карточки/i)).toBeInTheDocument();
     });
 });

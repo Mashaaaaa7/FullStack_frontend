@@ -10,22 +10,19 @@ const roles = [
 
 describe('RBAC UI - DashboardApp', () => {
     beforeEach(() => {
-        // Сбрасываем все моки перед каждым тестом
         vi.resetModules();
     });
 
     roles.forEach(({ role, email, canSeeAdmin }) => {
         it(`${role} should ${canSeeAdmin ? '' : 'not '}see admin menu`, async () => {
-            // Мокаем контекст для конкретной роли
             vi.doMock(authModule, () => ({
                 useAuth: () => ({ user: { email, role } })
             }));
 
-            // Динамический импорт компонента после мока
             const { DashboardApp } = await import('../components/Dashboard/DashboardApp.tsx');
             render(<DashboardApp />);
 
-            if (canSeeAdmin) {
+            if(canSeeAdmin) {
                 expect(screen.getByText(/admin/i)).toBeInTheDocument();
             } else {
                 expect(screen.queryByText(/admin/i)).not.toBeInTheDocument();
