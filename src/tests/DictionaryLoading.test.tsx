@@ -16,6 +16,30 @@ beforeEach(() => {
 });
 
 describe('Dictionary loading state', () => {
+    it('показывает ошибку при 500', async () => {
+        vi.mock('../api/api', () => ({
+            getDictionary: vi.fn(() => Promise.reject(new Error('Server error')))
+        }));
+
+        render(<DictionaryWidget />);
+
+        await waitFor(() =>
+            expect(screen.getByText(/не удалось загрузить/i)).toBeInTheDocument()
+        );
+    });
+
+    it('показывает ошибку при 401', async () => {
+        vi.mock('../api/api', () => ({
+            getDictionary: vi.fn(() => Promise.reject(new Error('Unauthorized')))
+        }));
+
+        render(<DictionaryWidget />);
+
+        await waitFor(() =>
+            expect(screen.getByText(/unauthorized/i)).toBeInTheDocument()
+        );
+    });
+
     it('показывает индикатор загрузки пока API отвечает и потом отображает данные', async () => {
         render(<DictionaryWidget />);
 
