@@ -88,4 +88,10 @@ export const adminApi = {
         api.put(`/admin/users/${userId}/role`, { role }).then(res => res.data),
 };
 
+// API для словаря
+export const dictionaryApi = {
+    getDefinition: (word: string) =>
+        api.get(`/dictionary?word=${encodeURIComponent(word)}`).then(res => res.data),
+};
+
 export default api;

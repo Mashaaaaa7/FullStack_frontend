@@ -1,35 +1,72 @@
-import { renderWithRouterAndAuth, setCurrentUser } from "./test-utils";
-import { screen, fireEvent, waitFor } from "@testing-library/react";
-import DictionaryWidget from "../components/Dashboard/DictionaryWidget";
-import { beforeEach, describe, it, vi } from "vitest";
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, beforeEach, vi } from 'vitest';
+import { renderWithRouterAndAuth } from './test-utils';
+import { dictionaryApi } from '../api/api';
+import DictionaryWidget from "../components/Dashboard/DictionaryWidget.tsx";
 
-beforeEach(() => vi.clearAllMocks());
+// Мокаем API
+vi.mock('../api/api', async () => {
+    const actual = await vi.importActual('../api/api');
+    return {
+        ...actual,
+        dictionaryApi: {
+            getDefinition: vi.fn(),
+        },
+        authApi: {
+            getMe: vi.fn().mockResolvedValue({ user_id: 1, email: 'test@example.com', role: 'user' }),
+        },
+    };
+});
 
-vi.mock("../api/api", () => ({
-    pdfApi: { getCards: vi.fn().mockResolvedValue({ cards: [{ id: 1, question: "Q", answer: "A" }], total: 1 }) },
-    dictionaryApi: { getCard: vi.fn((word) => Promise.resolve({ id: 1, question: word, answer: "ответ" })) },
-}));
-
-describe("DictionaryWidget", () => {
-    it("загружает данные после запроса", async () => {
-        setCurrentUser({ id: 1, email: "user@test.com", role: "user", token: "token" });
-        renderWithRouterAndAuth(<DictionaryWidget />);
-
-        fireEvent.change(screen.getByPlaceholderText(/Введите слово/i), { target: { value: "apple" } });
-        fireEvent.click(screen.getByRole("button", { name: /Узнать/i }));
-
-        expect(screen.getByText(/Загрузка/i)).toBeInTheDocument();
-        await waitFor(() => expect(screen.getByText(/ответ/i)).toBeInTheDocument());
+describe('DictionaryWidget', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.setItem('access_token', 'mock-token');
     });
 
-    it("показывает ошибку при 401", async () => {
-        setCurrentUser({ id: 1, email: "user@test.com", role: "user", token: "token" });
-        vi.mocked(require("../api/api").dictionaryApi.getCard).mockRejectedValue({ response: { status: 401 } });
+    it('загружает данные после запроса', async () => {
+        // Мокаем успешный ответ
+        (dictionaryApi.getDefinition as any).mockResolvedValue({
+            word: 'apple',
+            phonetic: '/ˈæp.əl/',
+            definitions: [
+                { partOfSpeech: 'noun', definition: 'яблоко', example: 'I eat an apple.' }
+            ]
+        });
 
         renderWithRouterAndAuth(<DictionaryWidget />);
-        fireEvent.change(screen.getByPlaceholderText(/Введите слово/i), { target: { value: "apple" } });
-        fireEvent.click(screen.getByRole("button", { name: /Узнать/i }));
 
-        await waitFor(() => expect(screen.getByText(/Unauthorized/i)).toBeInTheDocument());
+        const input = screen.getByPlaceholderText(/Введите слово/i);
+        const button = screen.getByRole('button', { name: /Узнать/i });
+
+        fireEvent.change(input, { target: { value: 'apple' } });
+        fireEvent.click(button);
+
+        // Проверяем что появилась загрузка
+        expect(screen.getByText(/Загрузка/i)).toBeInTheDocument();
+
+        // Ждём появления результата
+        await waitFor(() => {
+            expect(screen.getByText(/яблоко/i)).toBeInTheDocument();
+        });
+    });
+
+    it('показывает ошибку при 401', async () => {
+        // Мокаем ошибку авторизации
+        (dictionaryApi.getDefinition as any).mockRejectedValue({
+            response: { status: 401, data: { detail: 'Unauthorized' } }
+        });
+
+        renderWithRouterAndAuth(<DictionaryWidget />);
+
+        const input = screen.getByPlaceholderText(/Введите слово/i);
+        const button = screen.getByRole('button', { name: /Узнать/i });
+
+        fireEvent.change(input, { target: { value: 'test' } });
+        fireEvent.click(button);
+
+        await waitFor(() => {
+            expect(screen.getByText(/не удалось загрузить/i)).toBeInTheDocument();
+        });
     });
 });

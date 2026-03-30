@@ -1,16 +1,23 @@
+vi.mock('../api/api', () => ({
+    authApi: {
+        login: vi.fn(),
+        getMe: vi.fn(),
+        logout: vi.fn(),
+        refresh: vi.fn(),
+    },
+    pdfApi: {
+        getCards: vi.fn(),
+        list: vi.fn(),
+    },
+    dictionaryApi: {
+        getDefinition: vi.fn(),
+    },
+}));
+
 import { screen, waitFor } from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
 import { DashboardApp } from '../components/Dashboard/DashboardApp';
 import { renderWithRouterAndAuth } from './test-utils';
-
-vi.mock('../api/api', () => ({
-    pdfApi: { getCards: vi.fn().mockResolvedValue({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }) },
-    authApi: {
-        getMe: vi.fn(),
-        login: vi.fn(),
-        logout: vi.fn(),
-    },
-}));
 
 describe('RBAC', () => {
     beforeEach(() => {
