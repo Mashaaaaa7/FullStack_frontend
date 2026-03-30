@@ -5,18 +5,17 @@ import { dictionaryApi } from '../api/api';
 import DictionaryWidget from "../components/Dashboard/DictionaryWidget.tsx";
 
 // Мокаем API
-vi.mock('../api/api', async () => {
-    const actual = await vi.importActual('../api/api');
-    return {
-        ...actual,
-        dictionaryApi: {
-            getDefinition: vi.fn(),
-        },
-        authApi: {
-            getMe: vi.fn().mockResolvedValue({ user_id: 1, email: 'test@example.com', role: 'user' }),
-        },
-    };
-});
+vi.mock('../api/api', () => ({
+    dictionaryApi: {
+        getDefinition: vi.fn(),
+    },
+    authApi: {
+        getMe: vi.fn().mockResolvedValue({ user_id: 1, email: 'test@example.com', role: 'user' }),
+    },
+    pdfApi: {
+        getCards: vi.fn().mockResolvedValue({ cards: [], total: 0 }),
+    },
+}));
 
 describe('Dictionary loading state', () => {
     beforeEach(() => {
@@ -25,7 +24,7 @@ describe('Dictionary loading state', () => {
     });
 
     it('показывает загрузку и затем данные', async () => {
-        // Задержка для имитации загрузки
+        // Используем mockImplementation для задержки
         (dictionaryApi.getDefinition as any).mockImplementation(() =>
             new Promise((resolve) => {
                 setTimeout(() => {
@@ -45,10 +44,10 @@ describe('Dictionary loading state', () => {
         fireEvent.change(input, { target: { value: 'apple' } });
         fireEvent.click(button);
 
-        // Сначала видим загрузку
+        // Проверяем загрузку
         expect(screen.getByText(/Загрузка/i)).toBeInTheDocument();
 
-        // Затем результат
+        // Ждём результат
         await waitFor(() => {
             expect(screen.getByText(/яблоко/i)).toBeInTheDocument();
         });

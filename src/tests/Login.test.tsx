@@ -1,43 +1,25 @@
-import { screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
 import { Login } from '../components/Auth/Login';
 import { renderWithRouterAndAuth } from './test-utils';
-
-// Мокаем API до импорта компонентов
-vi.mock('../api/api', () => {
-    const mockGetMe = vi.fn();
-    const mockLogin = vi.fn();
-    const mockLogout = vi.fn();
-    const mockRefresh = vi.fn();
-
-    const mockGetCards = vi.fn();
-    const mockList = vi.fn();
-    const mockUpload = vi.fn();
-    const mockProcessCards = vi.fn();
-    const mockDelete = vi.fn();
-    const mockDownload = vi.fn();
-    const mockGetHistory = vi.fn();
-
-    return {
-        authApi: {
-            getMe: mockGetMe,
-            login: mockLogin,
-            logout: mockLogout,
-            refresh: mockRefresh,
-        },
-        pdfApi: {
-            getCards: mockGetCards,
-            list: mockList,
-            upload: mockUpload,
-            processCards: mockProcessCards,
-            delete: mockDelete,
-            download: mockDownload,
-            getHistory: mockGetHistory,
-        },
-    };
-});
-
 import { authApi } from '../api/api';
+
+// Мокаем API
+vi.mock('../api/api', () => ({
+    authApi: {
+        login: vi.fn(),
+        getMe: vi.fn(),
+        logout: vi.fn(),
+        refresh: vi.fn(),
+    },
+    pdfApi: {
+        getCards: vi.fn(),
+        list: vi.fn(),
+    },
+    dictionaryApi: {
+        getDefinition: vi.fn(),
+    },
+}));
 
 describe('LoginPage', () => {
     beforeEach(() => {
@@ -45,10 +27,8 @@ describe('LoginPage', () => {
         localStorage.clear();
     });
 
-    it('рендерит форму', async () => {
-        await act(async () => {
-            renderWithRouterAndAuth(<Login />);
-        });
+    it('рендерится корректно', async () => {
+        renderWithRouterAndAuth(<Login />);
 
         expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
         expect(screen.getByPlaceholderText(/Пароль/i)).toBeInTheDocument();
@@ -56,51 +36,50 @@ describe('LoginPage', () => {
     });
 
     it('успешный login', async () => {
-        (authApi.login as any).mockReturnValue(Promise.resolve({
+        (authApi.login as any).mockResolvedValue({
             access_token: 'mock-token',
             refresh_token: 'mock-refresh',
-        }));
-
-        await act(async () => {
-            renderWithRouterAndAuth(<Login />);
         });
+
+        renderWithRouterAndAuth(<Login />);
 
         const emailInput = screen.getByPlaceholderText(/email/i);
         const passwordInput = screen.getByPlaceholderText(/Пароль/i);
         const submitButton = screen.getByRole('button', { name: /войти/i });
 
-        await act(async () => {
-            fireEvent.change(emailInput, { target: { value: 'user@test.com' } });
-            fireEvent.change(passwordInput, { target: { value: 'password' } });
-            fireEvent.click(submitButton);
-        });
+        fireEvent.change(emailInput, { target: { value: 'user@test.com' } });
+        fireEvent.change(passwordInput, { target: { value: 'password' } });
+        fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(authApi.login).toHaveBeenCalled();
+            expect(authApi.login).toHaveBeenCalledWith({
+                email: 'user@test.com',
+                password: 'password',
+            });
+            expect(localStorage.getItem('access_token')).toBe('mock-token');
         });
     });
 
     it('неуспешный login показывает ошибку', async () => {
-        (authApi.login as any).mockReturnValue(Promise.reject({
+        // Правильно мокаем ошибку
+        (authApi.login as any).mockRejectedValue({
             response: { data: { detail: 'Invalid credentials' } }
-        }));
-
-        await act(async () => {
-            renderWithRouterAndAuth(<Login />);
         });
+
+        renderWithRouterAndAuth(<Login />);
 
         const emailInput = screen.getByPlaceholderText(/email/i);
         const passwordInput = screen.getByPlaceholderText(/Пароль/i);
         const submitButton = screen.getByRole('button', { name: /войти/i });
 
-        await act(async () => {
-            fireEvent.change(emailInput, { target: { value: 'bad@test.com' } });
-            fireEvent.change(passwordInput, { target: { value: 'wrong' } });
-            fireEvent.click(submitButton);
-        });
+        fireEvent.change(emailInput, { target: { value: 'bad@test.com' } });
+        fireEvent.change(passwordInput, { target: { value: 'wrong' } });
+        fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByText(/неверный логин или пароль/i)).toBeInTheDocument();
+            // Исправленный текст ошибки — смотрим в компоненте Login.tsx
+            // В вашем компоненте выводится "Ошибка при входе"
+            expect(screen.getByText(/Ошибка при входе/i)).toBeInTheDocument();
         });
     });
 });

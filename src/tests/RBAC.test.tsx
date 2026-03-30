@@ -1,27 +1,30 @@
+import { screen, waitFor } from '@testing-library/react';
+import { describe, it, beforeEach, vi } from 'vitest';
+import { DashboardApp } from '../components/Dashboard/DashboardApp';
+import { renderWithRouterAndAuth } from './test-utils';
+import { authApi } from '../api/api';
+
+// Мокаем API
 vi.mock('../api/api', () => ({
     authApi: {
-        login: vi.fn(),
         getMe: vi.fn(),
+        login: vi.fn(),
         logout: vi.fn(),
         refresh: vi.fn(),
     },
     pdfApi: {
-        getCards: vi.fn(),
-        list: vi.fn(),
+        getCards: vi.fn().mockResolvedValue({ cards: [], total: 0 }),
+        list: vi.fn().mockResolvedValue({ files: [] }),
     },
     dictionaryApi: {
         getDefinition: vi.fn(),
     },
 }));
 
-import { screen, waitFor } from '@testing-library/react';
-import { describe, it, beforeEach, vi } from 'vitest';
-import { DashboardApp } from '../components/Dashboard/DashboardApp';
-import { renderWithRouterAndAuth } from './test-utils';
-
 describe('RBAC', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        localStorage.clear();
     });
 
     const testCases = [
@@ -31,21 +34,22 @@ describe('RBAC', () => {
 
     testCases.forEach(({ role, canSeeAdmin }) => {
         it(`${role} ${canSeeAdmin ? 'видит' : 'не видит'} admin меню`, async () => {
-            const { authApi } = require('../api/api');
-
             // Мокаем getMe на нужного пользователя
-            authApi.getMe.mockResolvedValue({ user_id: 1, email: 'test@example.com', role });
+            (authApi.getMe as any).mockResolvedValue({
+                user_id: 1,
+                email: 'test@example.com',
+                role
+            });
 
-            // Ставим токен, чтобы AuthProvider считал пользователя авторизованным
-            window.localStorage.setItem('access_token', 'mock-token');
+            localStorage.setItem('access_token', 'mock-token');
 
             renderWithRouterAndAuth(<DashboardApp />);
 
             await waitFor(() => {
                 if (canSeeAdmin) {
-                    expect(screen.getByText(/Admin/i)).toBeInTheDocument();
+                    expect(screen.getByText(/admin/i)).toBeInTheDocument();
                 } else {
-                    expect(screen.queryByText(/Admin/i)).toBeNull();
+                    expect(screen.queryByText(/admin/i)).not.toBeInTheDocument();
                 }
             });
         });
