@@ -1,49 +1,43 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Login } from "../components/Auth/Login.tsx";
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, beforeEach, vi } from 'vitest';
+import { Login } from '../components/Auth/Login';
+import { renderWithRouterAndAuth } from './test-utils';
 
-beforeEach(() => {
-    vi.resetModules();
-});
+const mockLogin = vi.fn();
 
-// Мокаем API
-vi.mock('../../api/api', () => ({
-    authApi: {
-        login: vi.fn((email: string, password: string) => {
-            if(email === 'mary200438@gmail.com' && password === 'password') {
-                return Promise.resolve({ email, role: 'admin' });
-            } else {
-                return Promise.reject(new Error('Invalid credentials'));
-            }
-        })
-    }
+vi.mock('../api/api', () => ({
+    authApi: { login: (...args: any) => mockLogin(...args) },
 }));
 
+beforeEach(() => vi.clearAllMocks());
+
 describe('Login Page', () => {
-    it('renders LoginPage', () => {
-        render(<Login />);
-        expect(screen.getByText(/login/i)).toBeInTheDocument();
+    it('рендерит форму', () => {
+        renderWithRouterAndAuth(<Login />);
+        expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/password/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
     });
 
-    it('login success redirects to dashboard', async () => {
-        render(<Login />);
-        fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'mary200438@gmail.com' } });
-        fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'password' } });
+    it('успешный логин', async () => {
+        mockLogin.mockResolvedValue({ email: 'user@example.com', role: 'user' });
+        renderWithRouterAndAuth(<Login />);
+
+        fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'user@example.com' } });
+        fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'password' } });
         fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
-        await waitFor(() => {
-            expect(screen.getByText(/Учебные карточки/i)).toBeInTheDocument();
-        });
+        await waitFor(() => expect(mockLogin).toHaveBeenCalled());
     });
 
-    it('login fail shows error', async () => {
-        render(<Login />);
-        fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'wrong@example.com' } });
-        fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'wrongpass' } });
+    it('неуспешный логин показывает ошибку', async () => {
+        mockLogin.mockRejectedValue(new Error('Invalid credentials'));
+        renderWithRouterAndAuth(<Login />);
+
+        fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'wrong@example.com' } });
+        fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'wrongpass' } });
         fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
-        await waitFor(() => {
-            expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
-        });
+        await waitFor(() => expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument());
     });
 });

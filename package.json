@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
@@ -28,6 +30,7 @@
     "@vitejs/plugin-react": "^4.0.0",
     "baseline-browser-mapping": "^2.9.19",
     "jest": "^30.3.0",
+    "jsdom": "^29.0.1",
     "msw": "^2.12.14",
     "playwright": "^1.58.2",
     "typescript": "^5.0.0",

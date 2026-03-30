@@ -1,32 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { it } from 'vitest';
+import { DashboardApp } from '../components/Dashboard/DashboardApp';
+import { mockAuth, renderWithRouterAndAuth } from './test-utils';
 
-const authModule = '../../Context/AuthContext';
-
-const roles = [
-    { role: 'user', email: 'mashavacylieva@gmail.com', canSeeAdmin: false },
-    { role: 'admin', email: 'mary200438@gmail.com', canSeeAdmin: true },
+const roles: { role: 'user' | 'admin'; canSeeAdmin: boolean }[] = [
+    { role: 'user', canSeeAdmin: false },
+    { role: 'admin', canSeeAdmin: true },
 ];
 
-describe('RBAC UI - DashboardApp', () => {
-    beforeEach(() => {
-        vi.resetModules();
-    });
-
-    roles.forEach(({ role, email, canSeeAdmin }) => {
-        it(`${role} should ${canSeeAdmin ? '' : 'not '}see admin menu`, async () => {
-            vi.doMock(authModule, () => ({
-                useAuth: () => ({ user: { email, role } })
-            }));
-
-            const { DashboardApp } = await import('../components/Dashboard/DashboardApp.tsx');
-            render(<DashboardApp />);
-
-            if(canSeeAdmin) {
-                expect(screen.getByText(/admin/i)).toBeInTheDocument();
-            } else {
-                expect(screen.queryByText(/admin/i)).not.toBeInTheDocument();
-            }
+roles.forEach(({ role, canSeeAdmin }) => {
+    it(`${role} ${canSeeAdmin ? 'видит' : 'не видит'} admin меню`, () => {
+        mockAuth({
+            user: { id: 1, email: `${role}@example.com`, role, token: 'token' },
         });
+        renderWithRouterAndAuth(<DashboardApp />);
+        if (canSeeAdmin) expect(screen.getByText(/admin/i)).toBeInTheDocument();
+        else expect(screen.queryByText(/admin/i)).toBeNull();
     });
 });
