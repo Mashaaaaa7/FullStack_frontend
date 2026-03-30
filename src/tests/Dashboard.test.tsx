@@ -1,91 +1,60 @@
-import { screen } from '@testing-library/react';
-import { describe, it, beforeEach, vi } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import { describe, it, vi, beforeEach } from 'vitest';
 import { DashboardApp } from '../components/Dashboard/DashboardApp';
-import { Login } from '../components/Auth/Login';
-import { mockAuth, renderWithRouterAndAuth } from './test-utils';
+import { renderWithRouterAndAuth } from './test-utils';
 
-// Мок API на верхнем уровне
-const mockGetCards = vi.fn();
+// Мок API
+const getCardsMock = vi.fn();
 
-vi.mock('../api/api', () => ({
-    pdfApi: { getCards: mockGetCards },
+// Мокаем AuthContext
+const useAuthMock = vi.fn();
+vi.mock('../Context/AuthContext', () => ({
+    useAuth: () => useAuthMock(),
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-beforeEach(() => {
-    vi.clearAllMocks();
-});
+vi.mock('../api/api', () => ({
+    pdfApi: {
+        getCards: getCardsMock,
+    },
+}));
 
 describe('DashboardApp', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
 
     it('показывает карточки после успешного API', async () => {
-        // 1️⃣ Настраиваем замоканный AuthContext
-        mockAuth({
-            user: { id: 1, email: 'user@example.com', role: 'user', token: 'token' },
-        });
+        useAuthMock.mockReturnValue({ user: { id: 1, email: 'user@example.com', role: 'user', token: 'token' } });
+        getCardsMock.mockResolvedValue({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 });
 
-        // 2️⃣ Мокируем ответ API
-        mockGetCards.mockResolvedValue({
-            cards: [{ id: 1, question: 'Q', answer: 'A' }],
-            total: 1,
-        });
-
-        // 3️⃣ Рендерим компонент внутри теста
         renderWithRouterAndAuth(<DashboardApp />);
 
-        // 4️⃣ Проверяем индикатор загрузки
-        expect(screen.getByText(/Загрузка/i)).toBeInTheDocument();
-
-        // 5️⃣ Ждем появления карточек
-        expect(await screen.findByText('Q')).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByText('Q')).toBeInTheDocument());
         expect(screen.getByText('A')).toBeInTheDocument();
-
-        // 6️⃣ Загрузка пропала
-        expect(screen.queryByText(/Загрузка/i)).toBeNull();
     });
 
     it('показывает loading перед рендером карточек', async () => {
-        mockAuth({
-            user: { id: 1, email: 'user@example.com', role: 'user', token: 'token' },
-        });
-
-        // Имитация задержки API
-        mockGetCards.mockImplementation(
+        useAuthMock.mockReturnValue({ user: { id: 1, email: 'user@example.com', role: 'user', token: 'token' } });
+        getCardsMock.mockImplementation(
             () =>
                 new Promise(resolve =>
-                    setTimeout(() => resolve({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }), 100)
+                    setTimeout(() => resolve({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }), 50)
                 )
         );
 
         renderWithRouterAndAuth(<DashboardApp />);
-
-        // Loading виден сразу
         expect(screen.getByText(/Загрузка/i)).toBeInTheDocument();
 
-        // Ждем окончания загрузки
-        expect(await screen.findByText('Q')).toBeInTheDocument();
-        expect(screen.getByText('A')).toBeInTheDocument();
-        expect(screen.queryByText(/Загрузка/i)).toBeNull();
+        await waitFor(() => expect(screen.queryByText(/Загрузка/i)).not.toBeInTheDocument());
+        expect(screen.getByText('Q')).toBeInTheDocument();
     });
 
     it('показывает ошибку при API fail', async () => {
-        mockAuth({
-            user: { id: 1, email: 'user@example.com', role: 'user', token: 'token' },
-        });
-
-        mockGetCards.mockRejectedValue(new Error('API Error'));
+        useAuthMock.mockReturnValue({ user: { id: 1, email: 'user@example.com', role: 'user', token: 'token' } });
+        getCardsMock.mockRejectedValue(new Error('API Error'));
 
         renderWithRouterAndAuth(<DashboardApp />);
-
-        // Проверяем появление ошибки
-        expect(await screen.findByText(/ошибка/i)).toBeInTheDocument();
-    });
-});
-
-describe('Login Page', () => {
-    it('рендерит форму логина', () => {
-        renderWithRouterAndAuth(<Login />);
-        expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByText(/ошибка/i)).toBeInTheDocument());
     });
 });

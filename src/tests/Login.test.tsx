@@ -1,43 +1,65 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, beforeEach, vi } from 'vitest';
+import { describe, it, vi, beforeEach } from 'vitest';
 import { Login } from '../components/Auth/Login';
 import { renderWithRouterAndAuth } from './test-utils';
 
-const mockLogin = vi.fn();
+const loginMock = vi.fn();
 
-vi.mock('../api/api', () => ({
-    authApi: { login: (...args: any) => mockLogin(...args) },
+// Мокаем AuthContext
+const useAuthMock = vi.fn();
+vi.mock('../Context/AuthContext', () => ({
+    useAuth: () => useAuthMock(),
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-beforeEach(() => vi.clearAllMocks());
-
 describe('Login Page', () => {
-    it('рендерит форму', () => {
-        renderWithRouterAndAuth(<Login />);
-        expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/password/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+    beforeEach(() => {
+        vi.clearAllMocks();
     });
 
-    it('успешный логин', async () => {
-        mockLogin.mockResolvedValue({ email: 'user@example.com', role: 'user' });
+    it('рендерит форму', () => {
+        useAuthMock.mockReturnValue({
+            login: loginMock,
+        });
+
         renderWithRouterAndAuth(<Login />);
 
-        fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'user@example.com' } });
-        fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'password' } });
-        fireEvent.click(screen.getByRole('button', { name: /login/i }));
+        expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/пароль/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /войти/i })).toBeInTheDocument();
+    });
 
-        await waitFor(() => expect(mockLogin).toHaveBeenCalled());
+    it('успешный логин вызывает login', async () => {
+        loginMock.mockResolvedValue({});
+        useAuthMock.mockReturnValue({ login: loginMock });
+
+        renderWithRouterAndAuth(<Login />);
+
+        fireEvent.change(screen.getByPlaceholderText(/email/i), {
+            target: { value: 'user@example.com' },
+        });
+        fireEvent.change(screen.getByPlaceholderText(/пароль/i), {
+            target: { value: 'password' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /войти/i }));
+
+        await waitFor(() => expect(loginMock).toHaveBeenCalledWith('user@example.com', 'password'));
     });
 
     it('неуспешный логин показывает ошибку', async () => {
-        mockLogin.mockRejectedValue(new Error('Invalid credentials'));
+        loginMock.mockRejectedValue(new Error('API Error'));
+        useAuthMock.mockReturnValue({ login: loginMock });
+
         renderWithRouterAndAuth(<Login />);
 
-        fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'wrong@example.com' } });
-        fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'wrongpass' } });
-        fireEvent.click(screen.getByRole('button', { name: /login/i }));
+        fireEvent.change(screen.getByPlaceholderText(/email/i), {
+            target: { value: 'wrong@example.com' },
+        });
+        fireEvent.change(screen.getByPlaceholderText(/пароль/i), {
+            target: { value: 'wrongpass' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /войти/i }));
 
-        await waitFor(() => expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText(/ошибка при входе/i)).toBeInTheDocument());
     });
 });
