@@ -36,9 +36,9 @@ describe("RBAC Dashboard", () => {
 
             await waitFor(() => {
                 if (canSeeAdmin) {
-                    expect(screen.getByText(/admin/i)).toBeInTheDocument();
+                    expect(screen.getByText(/Админ-панель/i)).toBeInTheDocument();
                 } else {
-                    expect(screen.queryByText(/admin/i)).toBeNull();
+                    expect(screen.queryByText(/Админ-панель/i)).toBeNull();
                 }
             });
         });
