@@ -1,20 +1,15 @@
-// RBAC.test.tsx
-import { screen } from '@testing-library/react';
-import { describe, it, vi, beforeEach } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import { describe, it, beforeEach, vi } from 'vitest';
 import { DashboardApp } from '../components/Dashboard/DashboardApp';
 import { renderWithRouterAndAuth } from './test-utils';
 
-const roles = [
-    { role: 'user', canSeeAdmin: false },
-    { role: 'admin', canSeeAdmin: true },
-];
-
-// Мокаем useAuth на уровне модуля
-const useAuthMock = vi.fn();
-
-vi.mock('../Context/AuthContext', () => ({
-    useAuth: () => useAuthMock(),
-    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+vi.mock('../api/api', () => ({
+    pdfApi: { getCards: vi.fn().mockResolvedValue({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }) },
+    authApi: {
+        getMe: vi.fn(),
+        login: vi.fn(),
+        logout: vi.fn(),
+    },
 }));
 
 describe('RBAC', () => {
@@ -22,24 +17,30 @@ describe('RBAC', () => {
         vi.clearAllMocks();
     });
 
-    roles.forEach(({ role, canSeeAdmin }) => {
-        it(`${role} ${canSeeAdmin ? 'видит' : 'не видит'} admin меню`, () => {
-            // Меняем поведение useAuth для текущего теста
-            useAuthMock.mockReturnValue({
-                user: { id: 1, email: `${role}@example.com`, role, token: 'token' },
-                login: vi.fn(),
-                logout: vi.fn(),
-                isAuthenticated: true,
-                hasRole: (r: 'user' | 'admin') => r === role,
-            });
+    const testCases = [
+        { role: 'user', canSeeAdmin: false },
+        { role: 'admin', canSeeAdmin: true },
+    ];
+
+    testCases.forEach(({ role, canSeeAdmin }) => {
+        it(`${role} ${canSeeAdmin ? 'видит' : 'не видит'} admin меню`, async () => {
+            const { authApi } = require('../api/api');
+
+            // Мокаем getMe на нужного пользователя
+            authApi.getMe.mockResolvedValue({ user_id: 1, email: 'test@example.com', role });
+
+            // Ставим токен, чтобы AuthProvider считал пользователя авторизованным
+            window.localStorage.setItem('access_token', 'mock-token');
 
             renderWithRouterAndAuth(<DashboardApp />);
 
-            if (canSeeAdmin) {
-                expect(screen.getByText(/admin/i)).toBeInTheDocument();
-            } else {
-                expect(screen.queryByText(/admin/i)).toBeNull();
-            }
+            await waitFor(() => {
+                if (canSeeAdmin) {
+                    expect(screen.getByText(/Admin/i)).toBeInTheDocument();
+                } else {
+                    expect(screen.queryByText(/Admin/i)).toBeNull();
+                }
+            });
         });
     });
 });

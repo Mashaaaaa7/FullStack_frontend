@@ -11,7 +11,7 @@ export type User = {
 type AuthContextType = {
     user: User | null;
     loading: boolean;
-    login: (email: string, password: string) => void;
+    login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     isAuthenticated: boolean;
     hasRole: (role: "user" | "admin") => boolean;
@@ -23,6 +23,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Инициализация при старте приложения
     useEffect(() => {
         const initAuth = async () => {
             const token = localStorage.getItem('access_token');
@@ -44,10 +45,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         initAuth();
     }, []);
 
-    const login = (newUser: User) => {
-        setUser(newUser);
+    // Функция входа
+    const login = async (email: string, password: string) => {
+        try {
+            const token = await authApi.login(email, password); // допустим API возвращает токен
+            localStorage.setItem('access_token', token);
+
+            const userData = await authApi.getMe(); // получаем данные пользователя
+            setUser({
+                id: userData.user_id,
+                email: userData.email,
+                role: userData.role,
+                token,
+            });
+        } catch (err) {
+            throw err;
+        }
     };
 
+    // Функция выхода
     const logout = async () => {
         try {
             await authApi.logout();
@@ -67,6 +83,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 };
 
+// Хук для использования контекста
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) throw new Error('useAuth must be used within AuthProvider');
