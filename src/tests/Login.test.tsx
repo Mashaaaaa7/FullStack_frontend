@@ -42,7 +42,7 @@ describe('LoginPage', () => {
 
         await waitFor(() => {
             expect(loginSpy).toHaveBeenCalledWith('user@test.com', 'password');
-            expect(localStorage.getItem('access_token')).toBe('mock-token');
+                        expect(localStorage.getItem('access_token')).toBe('mock-token');
         });
     });
 
