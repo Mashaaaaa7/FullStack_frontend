@@ -36,6 +36,7 @@ describe('LoginPage', () => {
     });
 
     it('успешный login', async () => {
+        // Исправляем: в компоненте authApi.login вызывается с двумя аргументами
         (authApi.login as any).mockResolvedValue({
             access_token: 'mock-token',
             refresh_token: 'mock-refresh',
@@ -52,16 +53,13 @@ describe('LoginPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(authApi.login).toHaveBeenCalledWith({
-                email: 'user@test.com',
-                password: 'password',
-            });
+            // Исправляем: ожидаем два отдельных аргумента, а не объект
+            expect(authApi.login).toHaveBeenCalledWith('user@test.com', 'password');
             expect(localStorage.getItem('access_token')).toBe('mock-token');
         });
     });
 
     it('неуспешный login показывает ошибку', async () => {
-        // Правильно мокаем ошибку
         (authApi.login as any).mockRejectedValue({
             response: { data: { detail: 'Invalid credentials' } }
         });
@@ -77,8 +75,6 @@ describe('LoginPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            // Исправленный текст ошибки — смотрим в компоненте Login.tsx
-            // В вашем компоненте выводится "Ошибка при входе"
             expect(screen.getByText(/Ошибка при входе/i)).toBeInTheDocument();
         });
     });

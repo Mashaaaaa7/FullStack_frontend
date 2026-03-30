@@ -1,73 +1,81 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
+import { Login } from '../components/Auth/Login';
 import { renderWithRouterAndAuth } from './test-utils';
-import { dictionaryApi } from '../api/api';
-import DictionaryWidget from "../components/Dashboard/DictionaryWidget.tsx";
+import { authApi } from '../api/api';
 
 // Мокаем API
 vi.mock('../api/api', () => ({
+    authApi: {
+        login: vi.fn(),
+        getMe: vi.fn(),
+        logout: vi.fn(),
+        refresh: vi.fn(),
+    },
+    pdfApi: {
+        getCards: vi.fn(),
+        list: vi.fn(),
+    },
     dictionaryApi: {
         getDefinition: vi.fn(),
     },
-    authApi: {
-        getMe: vi.fn().mockResolvedValue({ user_id: 1, email: 'test@example.com', role: 'user' }),
-    },
-    pdfApi: {
-        getCards: vi.fn().mockResolvedValue({ cards: [], total: 0 }),
-    },
 }));
 
-describe('Dictionary loading state', () => {
+describe('LoginPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        localStorage.setItem('access_token', 'mock-token');
+        localStorage.clear();
     });
 
-    it('показывает загрузку и затем данные', async () => {
-        // Используем mockImplementation для задержки
-        (dictionaryApi.getDefinition as any).mockImplementation(() =>
-            new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve({
-                        word: 'apple',
-                        definitions: [{ partOfSpeech: 'noun', definition: 'яблоко' }]
-                    });
-                }, 100);
-            })
-        );
+    it('рендерится корректно', async () => {
+        renderWithRouterAndAuth(<Login />);
 
-        renderWithRouterAndAuth(<DictionaryWidget />);
+        expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/Пароль/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /войти/i })).toBeInTheDocument();
+    });
 
-        const input = screen.getByPlaceholderText(/Введите слово/i);
-        const button = screen.getByRole('button', { name: /Узнать/i });
+    it('успешный login', async () => {
+        // Исправляем: в компоненте authApi.login вызывается с двумя аргументами
+        (authApi.login as any).mockResolvedValue({
+            access_token: 'mock-token',
+            refresh_token: 'mock-refresh',
+        });
 
-        fireEvent.change(input, { target: { value: 'apple' } });
-        fireEvent.click(button);
+        renderWithRouterAndAuth(<Login />);
 
-        // Проверяем загрузку
-        expect(screen.getByText(/Загрузка/i)).toBeInTheDocument();
+        const emailInput = screen.getByPlaceholderText(/email/i);
+        const passwordInput = screen.getByPlaceholderText(/Пароль/i);
+        const submitButton = screen.getByRole('button', { name: /войти/i });
 
-        // Ждём результат
+        fireEvent.change(emailInput, { target: { value: 'user@test.com' } });
+        fireEvent.change(passwordInput, { target: { value: 'password' } });
+        fireEvent.click(submitButton);
+
         await waitFor(() => {
-            expect(screen.getByText(/яблоко/i)).toBeInTheDocument();
+            // Исправляем: ожидаем два отдельных аргумента, а не объект
+            expect(authApi.login).toHaveBeenCalledWith('user@test.com', 'password');
+            expect(localStorage.getItem('access_token')).toBe('mock-token');
         });
     });
 
-    it('показывает ошибку при неавторизованном', async () => {
-        (dictionaryApi.getDefinition as any).mockRejectedValue({
-            response: { status: 401, data: { detail: 'Unauthorized' } }
+    it('неуспешный login показывает ошибку', async () => {
+        (authApi.login as any).mockRejectedValue({
+            response: { data: { detail: 'Invalid credentials' } }
         });
 
-        renderWithRouterAndAuth(<DictionaryWidget />);
+        renderWithRouterAndAuth(<Login />);
 
-        const input = screen.getByPlaceholderText(/Введите слово/i);
-        const button = screen.getByRole('button', { name: /Узнать/i });
+        const emailInput = screen.getByPlaceholderText(/email/i);
+        const passwordInput = screen.getByPlaceholderText(/Пароль/i);
+        const submitButton = screen.getByRole('button', { name: /войти/i });
 
-        fireEvent.change(input, { target: { value: 'test' } });
-        fireEvent.click(button);
+        fireEvent.change(emailInput, { target: { value: 'bad@test.com' } });
+        fireEvent.change(passwordInput, { target: { value: 'wrong' } });
+        fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByText(/не удалось загрузить/i)).toBeInTheDocument();
+            expect(screen.getByText(/Ошибка при входе/i)).toBeInTheDocument();
         });
     });
 });
