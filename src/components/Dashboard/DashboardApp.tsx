@@ -5,7 +5,7 @@ import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
 import { FileList, FileItem } from '../Files/FileList';
 import FileUploader from "../Files/FileUploader.tsx";
-import DictionaryWidget from "../DictionaryWidget.tsx";
+import DictionaryWidget from "./DictionaryWidget.tsx";
 
 interface DeckWithId extends Deck {
     id: number;

@@ -1,40 +1,24 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../Context/AuthContext';
-import { authApi } from '../../api/api';
+import {authApi} from "../../api/api.ts";
+import {useNavigate} from "react-router-dom";
 
 export const Login: React.FC = () => {
-    const { login } = useAuth();
-    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setMessage('');
-
+        setError('');
         try {
-            const data = await authApi.login(email, password);
-            const accessToken = data.access_token;
-
-            localStorage.setItem('access_token', accessToken);
-
-            const userData = await authApi.getMe();
-
-            const currentUser = {
-                id: userData.user_id,
-                email: userData.email,
-                role: userData.role,
-                token: accessToken,
-            };
-
-            login(currentUser);
+            const response = await authApi.login(email, password);
+            localStorage.setItem('access_token', response.access_token);
             navigate('/app');
         } catch (err: any) {
-            setMessage(err.response?.data?.detail || err.message || '❌ Ошибка входа');
+            setError('Ошибка при входе');
         } finally {
             setLoading(false);
         }
@@ -44,36 +28,31 @@ export const Login: React.FC = () => {
         <div className="auth-container">
             <div className="auth-form-container">
                 <h2>Вход</h2>
-                {message && <div className="message error">{message}</div>}
-                <form onSubmit={handleSubmit} className="auth-form">
+                <form className="auth-form" onSubmit={handleSubmit}>
                     <input
-                        type="email"
                         placeholder="Email"
+                        type="email"
                         value={email}
-                        onChange={e => setEmail(e.target.value)}
+                        onChange={(e) => setEmail(e.target.value)}
                         required
-                        disabled={loading}
                     />
                     <input
-                        type="password"
                         placeholder="Пароль"
+                        type="password"
                         value={password}
-                        onChange={e => setPassword(e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)}
                         required
-                        disabled={loading}
                     />
                     <button type="submit" disabled={loading}>
-                        {loading ? 'Вход...' : 'Войти'}
+                        {loading ? 'Загрузка...' : 'Войти'}
                     </button>
                 </form>
-                <div className="auth-switch">
-                    <p>
-                        Нет аккаунта?{' '}
-                        <Link to="/register" className="link">
-                            Зарегистрироваться
-                        </Link>
-                    </p>
-                </div>
+                {error && <p className="error">{error}</p>}
+            </div>
+            <div className="auth-switch">
+                <p>
+                    Нет аккаунта? <a href="/register">Зарегистрироваться</a>
+                </p>
             </div>
         </div>
     );

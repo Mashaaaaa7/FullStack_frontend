@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from "../../Context/AuthContext.tsx";
-import api from "../../api/api.ts";
+import { pdfApi } from '../../api/api';
 import { FileItem } from './FileList';
 
 interface FileCardProps {
@@ -24,8 +24,7 @@ export const FileCard: React.FC<FileCardProps> = ({
 
     const handleDownload = async () => {
         try {
-            const response = await api.get(`/pdf/${file.id}/download`);
-            const { download_url } = response.data;
+            const { download_url } = await pdfApi.getDownloadUrl(file.id);
             window.open(download_url, '_blank');
         } catch (error) {
             alert('Не удалось скачать файл');
@@ -33,8 +32,14 @@ export const FileCard: React.FC<FileCardProps> = ({
     };
 
     const handleDelete = async () => {
-        onDelete(file.id);
+        try {
+            await pdfApi.deleteFile(file.id);
+            onDelete(file.id);
+        } catch (error) {
+            alert('Не удалось удалить файл');
+        }
     };
+
 
     return (
         <div className={`file-card ${isSelected ? 'selected' : ''}`}>
