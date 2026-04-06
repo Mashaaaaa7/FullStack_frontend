@@ -1,37 +1,29 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import {useAuth} from "../../Context/AuthContext.tsx";
+import {authApi} from "../../api/api.ts";
+
 
 export const Register: React.FC = () => {
+    const { login } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setMessage('');
-
+        setError('');
         try {
-            // --- Отправляем запрос на регистрацию ---
-            const res = await fetch('http://127.0.0.1:8000/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                setMessage(data.detail || '❌ Ошибка регистрации');
-                return;
-            }
-
-            // --- Переход на Dashboard ---
+            // Регистрация
+            await authApi.register(email, password);
+            // Автоматический вход
+            await login(email, password);
             navigate('/app');
-        } catch (err) {
-            setMessage('❌ Ошибка сервера');
+        } catch (err: any) {
+            setError(err.response?.data?.detail || 'Ошибка регистрации');
         } finally {
             setLoading(false);
         }
@@ -41,11 +33,11 @@ export const Register: React.FC = () => {
         <div className="auth-container">
             <div className="auth-form-container">
                 <h2>Регистрация</h2>
-                {message && <div className="message error">{message}</div>}
+                {error && <div className="message error">{error}</div>}
                 <form onSubmit={handleSubmit} className="auth-form">
                     <input
                         type="email"
-                        placeholder="Введите ваш email"
+                        placeholder="Email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         required
@@ -53,7 +45,7 @@ export const Register: React.FC = () => {
                     />
                     <input
                         type="password"
-                        placeholder="Введите ваш пароль"
+                        placeholder="Пароль"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required
