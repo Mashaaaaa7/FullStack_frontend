@@ -42,7 +42,7 @@ describe('LoginPage', () => {
 
         await waitFor(() => {
             expect(loginSpy).toHaveBeenCalledWith('user@test.com', 'password');
-                        expect(localStorage.getItem('access_token')).toBe('mock-token');
+            expect(localStorage.getItem('access_token')).toBe('mock-token');
         });
     });
 
@@ -62,6 +62,7 @@ describe('LoginPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
+            // Правильный текст ошибки из компонента
             expect(screen.getByText(/Ошибка при входе/i)).toBeInTheDocument();
         });
     });
