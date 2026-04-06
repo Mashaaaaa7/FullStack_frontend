@@ -41,7 +41,7 @@ export interface GetMe {
 }
 
 export type Role = "user" | "admin";
-
+//
 export interface CurrentUser {
     id: number;
     username: string;

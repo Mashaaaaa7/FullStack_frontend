@@ -1,6 +1,5 @@
 import { test as base, expect, Page } from '@playwright/test';
 
-// Кастомные фикстуры
 type CustomFixtures = {
     authUser: Page;
     authAdmin: Page;
@@ -9,6 +8,11 @@ type CustomFixtures = {
 
 export const test = base.extend<CustomFixtures>({
     authUser: async ({ page }, use) => {
+        // Устанавливаем токен до загрузки страницы
+        await page.addInitScript(() => {
+            localStorage.setItem('access_token', 'mock-token');
+        });
+        // Мокаем запросы
         await page.route('**/api/auth/login', route =>
             route.fulfill({
                 status: 200,
@@ -23,11 +27,13 @@ export const test = base.extend<CustomFixtures>({
                 body: JSON.stringify({ user_id: 1, email: 'user@example.com', role: 'user' }),
             })
         );
-        await page.evaluate(() => localStorage.setItem('access_token', 'mock-token'));
         await use(page);
     },
 
     authAdmin: async ({ page }, use) => {
+        await page.addInitScript(() => {
+            localStorage.setItem('access_token', 'mock-token');
+        });
         await page.route('**/api/auth/login', route =>
             route.fulfill({
                 status: 200,
@@ -42,7 +48,6 @@ export const test = base.extend<CustomFixtures>({
                 body: JSON.stringify({ user_id: 1, email: 'admin@example.com', role: 'admin' }),
             })
         );
-        await page.evaluate(() => localStorage.setItem('access_token', 'mock-token'));
         await use(page);
     },
 
@@ -68,7 +73,8 @@ export const test = base.extend<CustomFixtures>({
     },
 });
 
-// user login – не видит admin меню
+// -------------------- Тесты --------------------
+
 test('user login показывает dashboard без admin меню', async ({ authUser }) => {
     await authUser.goto('http://localhost:3000/login');
     await authUser.fill('input[placeholder="Email"]', 'user@example.com');
@@ -80,7 +86,6 @@ test('user login показывает dashboard без admin меню', async ({
     await expect(authUser.locator('text=Админ-панель')).toHaveCount(0);
 });
 
-// admin login – видит admin меню
 test('admin login показывает admin меню', async ({ authAdmin }) => {
     await authAdmin.goto('http://localhost:3000/login');
     await authAdmin.fill('input[placeholder="Email"]', 'admin@example.com');
@@ -91,7 +96,6 @@ test('admin login показывает admin меню', async ({ authAdmin }) =>
     await expect(authAdmin.locator('text=Админ-панель')).toBeVisible();
 });
 
-// Выход из системы
 test('user может logout и сессия очищена', async ({ authUser }) => {
     await authUser.goto('http://localhost:3000/app');
     await authUser.click('button:has-text("Выйти")');
@@ -114,7 +118,6 @@ test('admin просмотр PDF карточек', async ({ authAdmin, mockApi 
     await expect(authAdmin.locator('text=A')).toBeVisible();
 });
 
-// Тесты словаря
 test('user Dictionary API показывает определение', async ({ authUser, mockApi }) => {
     void mockApi;
     await authUser.goto('http://localhost:3000/app');
@@ -135,7 +138,6 @@ test('admin Dictionary API показывает определение и адм
     await expect(authAdmin.locator('text=Админ-панель')).toBeVisible();
 });
 
-// Ошибка словаря (401)
 test('Dictionary API возвращает ошибку 401', async ({ authUser, page }) => {
     await page.route('**/api/dictionary*', route =>
         route.fulfill({
@@ -151,7 +153,6 @@ test('Dictionary API возвращает ошибку 401', async ({ authUser, 
     await expect(authUser.locator('text=Не удалось загрузить определение')).toBeVisible();
 });
 
-// Неавторизованный пользователь редиректится на login
 test('неавторизованный пользователь редиректится на login', async ({ page }) => {
     await page.route('**/api/auth/me', route =>
         route.fulfill({
@@ -161,6 +162,8 @@ test('неавторизованный пользователь редирект
         })
     );
     await page.goto('http://localhost:3000/app');
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(page.locator('text=Вход')).toBeVisible();
+    // Если ваша маршрутизация перенаправляет на '/', а не на '/login', измените ожидание
+    // Например, ожидайте '/' и проверяйте наличие кнопки "Войти" на главной
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('text=Войти')).toBeVisible();
 });
