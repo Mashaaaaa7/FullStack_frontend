@@ -46,7 +46,7 @@ describe('DictionaryWidget', () => {
         });
 
         renderWithRouterAndAuth(<DictionaryWidget />);
-
+//
         const input = screen.getByPlaceholderText(/Введите слово/i);
         const button = screen.getByRole('button', { name: /Узнать/i });
 

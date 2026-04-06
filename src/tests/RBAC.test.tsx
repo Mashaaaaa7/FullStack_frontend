@@ -4,7 +4,6 @@ import { DashboardApp } from '../components/Dashboard/DashboardApp';
 import { renderWithRouterAndAuth } from './test-utils';
 import { authApi } from '../api/api';
 
-// Мокаем API
 vi.mock('../api/api', () => ({
     authApi: {
         getMe: vi.fn(),

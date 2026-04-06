@@ -13,7 +13,6 @@ describe('Dictionary loading state', () => {
     });
 
     it('показывает загрузку и затем данные', async () => {
-        // Задержка для имитации загрузки
         mockFetch.mockImplementation(() =>
             new Promise((resolve) => {
                 setTimeout(() => {
