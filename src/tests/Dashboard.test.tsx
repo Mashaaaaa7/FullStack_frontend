@@ -4,7 +4,6 @@ import { DashboardApp } from '../components/Dashboard/DashboardApp';
 import { renderWithRouterAndAuth } from './test-utils';
 import * as AuthContext from '../Context/AuthContext';
 
-// Мокаем только useAuth, остальное оставляем реальным
 vi.mock('../Context/AuthContext', async () => {
     const actual = await vi.importActual('../Context/AuthContext');
     return {
