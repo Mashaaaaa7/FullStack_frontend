@@ -211,6 +211,61 @@
     background: #dee2e6;
 }
 
+.profile-files {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.profile-files h2 {
+    margin-top: 0;
+    margin-bottom: 25px;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+    font-size: 22px;
+}
+
+.files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;  /* совпадает с .history-list */
+}
+
+.file-item {
+    padding: 16px;  /* совпадает с .history-item */
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+    transition: all 0.2s ease;
+}
+
+.file-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.file-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.file-details {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 13px;
+    color: #666;
+}
+
 /* История действий */
 .history-list {
     display: flex;

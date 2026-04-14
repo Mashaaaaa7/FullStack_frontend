@@ -288,10 +288,9 @@ export const Profile: React.FC = () => {
                     </div>
                 </section>
 
-                {/* Файлы пользователя */}
                 {(filesLoading || filesError || files.length > 0) && (
                     <section className="profile-files">
-                        <h2>📁 Мои файлы ({files.length})</h2>
+                        <h2>📊 История действий ({actionHistory.length})</h2>
                         {filesLoading && <p>Загрузка...</p>}
                         {filesError && <p className="error">{filesError}</p>}
                         <div className="files-list">
@@ -305,23 +304,6 @@ export const Profile: React.FC = () => {
                                         <span>Размер: {(file.size / 1024).toFixed(2)} КБ</span>
                                         <span>Загружен: {formatDate(file.created_at)}</span>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                {/* История действий */}
-                {actionHistory.length > 0 && (
-                    <section className="action-history">
-                        <h2>📊 История действий ({actionHistory.length})</h2>
-                        <div className="history-list">
-                            {actionHistory.map((item, idx) => (
-                                <div key={item.id ?? idx} className="history-item">
-                                    <span className="history-action">{item.action}</span>
-                                    {item.filename && <span className="history-filename">{item.filename}</span>}
-                                    <span className="history-timestamp">{formatDate(item.timestamp)}</span>
-                                    {item.details && <span className="history-details">{item.details}</span>}
                                 </div>
                             ))}
                         </div>
