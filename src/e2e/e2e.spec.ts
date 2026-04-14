@@ -143,16 +143,24 @@ test('user просмотр PDF карточек', async ({ authUser }) => {
     await setupMockApi(authUser);
     await authUser.goto(`${FRONTEND}/app`);
     await expect(authUser).toHaveURL(/\/app$/, { timeout: 10000 });
-    await expect(authUser.locator('text=Q')).toBeVisible();
-    await expect(authUser.locator('text=A')).toBeVisible();
+
+    await expect(authUser.locator('text=test.pdf')).toBeVisible({ timeout: 5000 });
+    await authUser.click('button:has-text("👁️")');
+
+    await expect(authUser.getByText('Q', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(authUser.getByText('A', { exact: true })).toBeVisible();
 });
 
 test('admin просмотр PDF карточек', async ({ authAdmin }) => {
     await setupMockApi(authAdmin);
     await authAdmin.goto(`${FRONTEND}/app`);
     await expect(authAdmin).toHaveURL(/\/app$/, { timeout: 10000 });
-    await expect(authAdmin.locator('text=Q')).toBeVisible();
-    await expect(authAdmin.locator('text=A')).toBeVisible();
+
+    await expect(authAdmin.locator('text=test.pdf')).toBeVisible({ timeout: 5000 });
+    await authAdmin.click('button:has-text("👁️")');
+
+    await expect(authAdmin.getByText('Q', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(authAdmin.getByText('A', { exact: true })).toBeVisible();
 });
 
 test('user Dictionary API показывает определение', async ({ authUser }) => {
