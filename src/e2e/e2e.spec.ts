@@ -85,14 +85,28 @@ export const test = base.extend<CustomFixtures>({
 });
 
 async function setupMockApi(page: Page) {
-    await page.route(`${BACKEND}/api/pdf/cards/**`, route =>
+    // PDF список — нужен чтобы dashboard знал какой file_id запрашивать
+    await page.route(`${BACKEND}/api/pdf/list*`, route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                items: [{ id: 1, file_name: 'test.pdf', status: 'done', size: 1024, created_at: new Date().toISOString() }],
+                total: 1,
+            }),
+        })
+    );
+    // PDF карточки
+    await page.route(`${BACKEND}/api/pdf/cards/*`, route =>
         route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }),
         })
     );
-    await page.route(`${BACKEND}/api/dictionary**`, route =>
+    // Dictionary — * вместо ** чтобы матчить ?word=apple
+    await page.route(`${BACKEND}/api/dictionary*`, route =>
         route.fulfill({
             status: 200,
             contentType: 'application/json',
@@ -123,7 +137,7 @@ test('user login показывает dashboard без admin меню', async ({
 
 test('admin login показывает admin меню', async ({ authAdmin }) => {
     await loginViaUI(authAdmin, 'admin@example.com');
-    await expect(authAdmin.locator('text=Админ-панель')).toBeVisible();
+    await expect(authAdmin.locator('text=Админ-панель')).toBeVisible({ timeout: 10000 });
 });
 
 test('user может logout и сессия очищена', async ({ authUser }) => {
@@ -172,16 +186,15 @@ test('admin Dictionary API показывает определение и адм
 });
 
 test('Dictionary API возвращает ошибку 401', async ({ authUser }) => {
-    await authUser.goto('http://localhost:3000/app');
-    await expect(authUser).toHaveURL(/\/app$/, { timeout: 10000 });
-    // Переопределяем dictionary мок на ошибку
-    await authUser.route(`${BACKEND}/api/dictionary**`, route =>
+    await authUser.route(`${BACKEND}/api/dictionary*`, route =>
         route.fulfill({
             status: 401,
             contentType: 'application/json',
             body: JSON.stringify({ detail: 'Unauthorized' }),
         })
     );
+    await authUser.goto('http://localhost:3000/app');
+    await expect(authUser).toHaveURL(/\/app$/, { timeout: 10000 });
     await authUser.fill('input[placeholder="Введите слово..."]', 'apple');
     await authUser.click('button:has-text("Узнать")');
     await expect(authUser.locator('text=Не удалось загрузить определение')).toBeVisible();
