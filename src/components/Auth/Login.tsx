@@ -1,59 +1,32 @@
 import React, { useState } from 'react';
-import {authApi} from "../../api/api.ts";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import {AuthForm} from "../AuthForm/AuthForm.tsx";
+import {useAuth} from "../../Context/AuthContext.tsx";
 
 export const Login: React.FC = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { login } = useAuth();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
+    const handleSubmit = async ({ email, password }: { email: string; password: string }) => {
         setError('');
         try {
-            const response = await authApi.login(email, password);
-            localStorage.setItem('access_token', response.access_token);
+            await login(email, password);
             navigate('/app');
-        } catch (err: any) {
+        } catch {
             setError('Ошибка при входе');
-        } finally {
-            setLoading(false);
         }
     };
 
     return (
         <div className="auth-container">
-            <div className="auth-form-container">
-                <h2>Вход</h2>
-                <form className="auth-form" onSubmit={handleSubmit}>
-                    <input
-                        placeholder="Email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                    <input
-                        placeholder="Пароль"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                    <button type="submit" disabled={loading}>
-                        {loading ? 'Загрузка...' : 'Войти'}
-                    </button>
-                </form>
-                {error && <p className="error">{error}</p>}
-            </div>
-            <div className="auth-switch">
-                <p>
-                    Нет аккаунта? <a href="/register">Зарегистрироваться</a>
-                </p>
-            </div>
+            <AuthForm
+                title="Вход"
+                submitLabel="Войти"
+                onSubmit={handleSubmit}
+                switchLink={{ text: "Нет аккаунта?", label: "Зарегистрироваться", to: "/register" }}
+            />
+            {error && <p className="error">{error}</p>}
         </div>
     );
 };

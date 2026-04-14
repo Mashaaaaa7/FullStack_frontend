@@ -1,20 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { AuthForm } from "../AuthForm/AuthForm.tsx";
 
 export const Register: React.FC = () => {
     const navigate = useNavigate();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
-    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
+    const handleSubmit = async ({ email, password }: { email: string; password: string }) => {
         setMessage('');
-
         try {
-            // --- Отправляем запрос на регистрацию ---
             const res = await fetch('http://127.0.0.1:8000/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -28,50 +22,21 @@ export const Register: React.FC = () => {
                 return;
             }
 
-            // --- Переход на Dashboard ---
             navigate('/app');
-        } catch (err) {
+        } catch {
             setMessage('❌ Ошибка сервера');
-        } finally {
-            setLoading(false);
         }
     };
 
     return (
         <div className="auth-container">
-            <div className="auth-form-container">
-                <h2>Регистрация</h2>
-                {message && <div className="message error">{message}</div>}
-                <form onSubmit={handleSubmit} className="auth-form">
-                    <input
-                        type="email"
-                        placeholder="Введите ваш email"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                    <input
-                        type="password"
-                        placeholder="Введите ваш пароль"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                    <button type="submit" disabled={loading}>
-                        {loading ? 'Регистрация...' : 'Зарегистрироваться'}
-                    </button>
-                </form>
-                <div className="auth-switch">
-                    <p>
-                        Уже есть аккаунт?{' '}
-                        <Link to="/login" className="link">
-                            Войти
-                        </Link>
-                    </p>
-                </div>
-            </div>
+            <AuthForm
+                title="Регистрация"
+                submitLabel="Зарегистрироваться"
+                onSubmit={handleSubmit}
+                switchLink={{ text: "Уже есть аккаунт?", label: "Войти", to: "/login" }}
+            />
+            {message && <p className="error">{message}</p>}
         </div>
     );
 };

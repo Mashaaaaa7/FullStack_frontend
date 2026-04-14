@@ -1,12 +1,14 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 interface AuthFormProps {
     title: string;
     submitLabel: string;
     onSubmit: (values: { email: string; password: string }) => void;
+    switchLink?: { text: string; label: string; to: string };
 }
 
-export const AuthForm: React.FC<AuthFormProps> = ({ title, submitLabel, onSubmit }) => {
+export const AuthForm: React.FC<AuthFormProps> = ({ title, submitLabel, onSubmit, switchLink }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -32,6 +34,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ title, submitLabel, onSubmit
                 Email
                 <input
                     type="email"
+                    placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -43,6 +46,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ title, submitLabel, onSubmit
                 Пароль
                 <input
                     type="password"
+                    placeholder="Пароль"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -64,6 +68,15 @@ export const AuthForm: React.FC<AuthFormProps> = ({ title, submitLabel, onSubmit
             >
                 {submitLabel}
             </button>
+
+            {switchLink && (
+                <p style={{ textAlign: "center", margin: 0, fontSize: "0.9rem", color: "#666" }}>
+                    {switchLink.text}{" "}
+                    <Link to={switchLink.to} style={{ color: "#667eea", textDecoration: "none", fontWeight: 500 }}>
+                        {switchLink.label}
+                    </Link>
+                </p>
+            )}
         </form>
     );
 };
