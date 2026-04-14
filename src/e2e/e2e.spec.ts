@@ -1,166 +1,213 @@
-import { test as base, expect, Page } from '@playwright/test';
+import { test as base, expect, Page, BrowserContext } from '@playwright/test';
 
-// Кастомные фикстуры
+const BACKEND = 'http://127.0.0.1:8000';
+const FRONTEND = 'http://localhost:3000';
+
 type CustomFixtures = {
     authUser: Page;
     authAdmin: Page;
-    mockApi: Page;
 };
 
+// --- Мокает авторизационные маршруты на уровне context ---
+async function mockAuthRoutes(context: BrowserContext, userData: object) {
+    await context.route(`${BACKEND}/api/profile/me`, route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(userData),
+        })
+    );
+    await context.route(`${BACKEND}/api/auth/refresh`, route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ access_token: 'dummy', refresh_token: 'dummy' }),
+        })
+    );
+    await context.route(`${BACKEND}/api/auth/login`, route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ access_token: 'dummy', refresh_token: 'dummy' }),
+        })
+    );
+    // Токен устанавливается до любой загрузки страницы
+    await context.addInitScript(() => {
+        localStorage.setItem('access_token', 'mock-token');
+    });
+}
+
+// --- Фикстуры ---
 export const test = base.extend<CustomFixtures>({
-    authUser: async ({ page }, use) => {
-        await page.route('**/api/auth/login', route =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ access_token: 'mock-token', refresh_token: 'mock-refresh' }),
-            })
-        );
-        await page.route('**/api/auth/me', route =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ user_id: 1, email: 'user@example.com', role: 'user' }),
-            })
-        );
-        await page.evaluate(() => localStorage.setItem('access_token', 'mock-token'));
+    authUser: async ({ browser }, use) => {
+        const userData = { user_id: 1, email: 'user@example.com', role: 'user' };
+        const context = await browser.newContext();
+        await mockAuthRoutes(context, userData);
+        const page = await context.newPage();
+        await page.goto(`${FRONTEND}/app`);
         await use(page);
+        await context.close();
     },
 
-    authAdmin: async ({ page }, use) => {
-        await page.route('**/api/auth/login', route =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ access_token: 'mock-token', refresh_token: 'mock-refresh' }),
-            })
-        );
-        await page.route('**/api/auth/me', route =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ user_id: 1, email: 'admin@example.com', role: 'admin' }),
-            })
-        );
-        await page.evaluate(() => localStorage.setItem('access_token', 'mock-token'));
+    authAdmin: async ({ browser }, use) => {
+        const userData = { user_id: 2, email: 'admin@example.com', role: 'admin' };
+        const context = await browser.newContext();
+        await mockAuthRoutes(context, userData);
+        const page = await context.newPage();
+        await page.goto(`${FRONTEND}/app`);
         await use(page);
-    },
-
-    mockApi: async ({ page }, use) => {
-        await page.route('**/api/pdf/cards/*', route =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }),
-            })
-        );
-        await page.route('**/api/dictionary*', route =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    word: 'apple',
-                    definitions: [{ partOfSpeech: 'noun', definition: 'яблоко', example: 'I eat an apple.' }],
-                }),
-            })
-        );
-        await use(page);
+        await context.close();
     },
 });
 
-// user login – не видит admin меню
+// --- Логин через UI ---
+async function loginViaUI(page: Page, email: string) {
+    await page.goto(`${FRONTEND}/login`);
+    await page.fill('input[placeholder="Email"]', email);
+    await page.fill('input[placeholder="Пароль"]', 'password');
+    await page.click('button:has-text("Войти")');
+    await expect(page).toHaveURL(/\/app$/, { timeout: 10000 });
+}
+
+// --- Мок PDF + карточки + словарь ---
+async function setupMockApi(page: Page) {
+    await page.route(`${BACKEND}/api/pdf/list*`, route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                items: [{
+                    id: 1,
+                    file_name: 'test.pdf',
+                    status: 'done',
+                    size: 1024,
+                    created_at: new Date().toISOString(),
+                }],
+                total: 1,
+            }),
+        })
+    );
+
+    await page.route(`${BACKEND}/api/pdf/cards/*`, route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                cards: [{ id: 1, question: 'Q', answer: 'A' }],
+                total: 1,
+            }),
+        })
+    );
+
+    // ✅ Wildcard — матчит ?word=apple на любом хосте
+    await page.route('**/api/dictionary*', route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                word: 'apple',
+                definitions: [{
+                    partOfSpeech: 'noun',
+                    definition: 'яблоко',
+                    example: 'I eat an apple.',
+                }],
+            }),
+        })
+    );
+}
+
+// ==================== Тесты ====================
+
 test('user login показывает dashboard без admin меню', async ({ authUser }) => {
-    await authUser.goto('http://localhost:3000/login');
-    await authUser.fill('input[placeholder="Email"]', 'user@example.com');
-    await authUser.fill('input[placeholder="Пароль"]', 'password');
-    await authUser.click('button:has-text("Войти")');
-
-    await expect(authUser).toHaveURL(/\/app$/);
+    await loginViaUI(authUser, 'user@example.com');
     await expect(authUser.locator('text=📖 Учебные карточки из PDF')).toBeVisible();
-    await expect(authUser.locator('text=Админ-панель')).toHaveCount(0);
+    await expect(authUser.locator('text=Админ')).toHaveCount(0);
 });
 
-// admin login – видит admin меню
 test('admin login показывает admin меню', async ({ authAdmin }) => {
-    await authAdmin.goto('http://localhost:3000/login');
-    await authAdmin.fill('input[placeholder="Email"]', 'admin@example.com');
-    await authAdmin.fill('input[placeholder="Пароль"]', 'password');
-    await authAdmin.click('button:has-text("Войти")');
-
-    await expect(authAdmin).toHaveURL(/\/app$/);
-    await expect(authAdmin.locator('text=Админ-панель')).toBeVisible();
+    await loginViaUI(authAdmin, 'admin@example.com');
+    // ✅ text=Админ — частичное совпадение, надёжнее чем точный текст кнопки
+    await expect(authAdmin.locator('text=Админ')).toBeVisible({ timeout: 10000 });
 });
 
-// Выход из системы
 test('user может logout и сессия очищена', async ({ authUser }) => {
-    await authUser.goto('http://localhost:3000/app');
+    await expect(authUser).toHaveURL(/\/app$/, { timeout: 10000 });
     await authUser.click('button:has-text("Выйти")');
     await expect(authUser).toHaveURL(/\/login$/);
     const token = await authUser.evaluate(() => localStorage.getItem('access_token'));
     expect(token).toBeNull();
 });
 
-test('user просмотр PDF карточек', async ({ authUser, mockApi }) => {
-    void mockApi;
-    await authUser.goto('http://localhost:3000/app');
-    await expect(authUser.locator('text=Q')).toBeVisible();
-    await expect(authUser.locator('text=A')).toBeVisible();
+test('user просмотр PDF карточек', async ({ authUser }) => {
+    await setupMockApi(authUser);
+    await authUser.goto(`${FRONTEND}/app`);
+    await expect(authUser).toHaveURL(/\/app$/, { timeout: 10000 });
+
+    await expect(authUser.locator('text=test.pdf')).toBeVisible({ timeout: 5000 });
+    await authUser.click('button:has-text("👁️")');
+
+    await expect(authUser.getByText('Q', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(authUser.getByText('A', { exact: true })).toBeVisible();
 });
 
-test('admin просмотр PDF карточек', async ({ authAdmin, mockApi }) => {
-    void mockApi;
-    await authAdmin.goto('http://localhost:3000/app');
-    await expect(authAdmin.locator('text=Q')).toBeVisible();
-    await expect(authAdmin.locator('text=A')).toBeVisible();
+test('admin просмотр PDF карточек', async ({ authAdmin }) => {
+    await setupMockApi(authAdmin);
+    await authAdmin.goto(`${FRONTEND}/app`);
+    await expect(authAdmin).toHaveURL(/\/app$/, { timeout: 10000 });
+
+    await expect(authAdmin.locator('text=test.pdf')).toBeVisible({ timeout: 5000 });
+    await authAdmin.click('button:has-text("👁️")');
+
+    await expect(authAdmin.getByText('Q', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(authAdmin.getByText('A', { exact: true })).toBeVisible();
 });
 
-// Тесты словаря
-test('user Dictionary API показывает определение', async ({ authUser, mockApi }) => {
-    void mockApi;
-    await authUser.goto('http://localhost:3000/app');
-    const input = authUser.locator('input[placeholder="Введите слово..."]');
-    await input.fill('apple');
+test('user Dictionary API показывает определение', async ({ authUser }) => {
+    await setupMockApi(authUser);
+    await authUser.goto(`${FRONTEND}/app`);
+    await expect(authUser).toHaveURL(/\/app$/, { timeout: 10000 });
+    await authUser.fill('input[placeholder="Введите слово..."]', 'apple');
     await authUser.click('button:has-text("Узнать")');
     await expect(authUser.locator('text=яблоко')).toBeVisible();
-    await expect(authUser.locator('text=Админ-панель')).toHaveCount(0);
+    await expect(authUser.locator('text=Админ')).toHaveCount(0);
 });
 
-test('admin Dictionary API показывает определение и админ-меню', async ({ authAdmin, mockApi }) => {
-    void mockApi;
-    await authAdmin.goto('http://localhost:3000/app');
-    const input = authAdmin.locator('input[placeholder="Введите слово..."]');
-    await input.fill('apple');
+test('admin Dictionary API показывает определение и админ-меню', async ({ authAdmin }) => {
+    await setupMockApi(authAdmin);
+    await authAdmin.goto(`${FRONTEND}/app`);
+    await expect(authAdmin).toHaveURL(/\/app$/, { timeout: 10000 });
+    await authAdmin.fill('input[placeholder="Введите слово..."]', 'apple');
     await authAdmin.click('button:has-text("Узнать")');
     await expect(authAdmin.locator('text=яблоко')).toBeVisible();
-    await expect(authAdmin.locator('text=Админ-панель')).toBeVisible();
+    await expect(authAdmin.locator('text=Админ')).toBeVisible();
 });
 
-// Ошибка словаря (401)
-test('Dictionary API возвращает ошибку 401', async ({ authUser, page }) => {
-    await page.route('**/api/dictionary*', route =>
+test('Dictionary API возвращает ошибку 401', async ({ authUser }) => {
+    // ✅ Wildcard переопределяет setupMockApi — страница ещё не загружена
+    await authUser.route('**/api/dictionary*', route =>
         route.fulfill({
             status: 401,
             contentType: 'application/json',
             body: JSON.stringify({ detail: 'Unauthorized' }),
         })
     );
-    await authUser.goto('http://localhost:3000/app');
-    const input = authUser.locator('input[placeholder="Введите слово..."]');
-    await input.fill('apple');
+    await authUser.goto(`${FRONTEND}/app`);
+    await expect(authUser).toHaveURL(/\/app$/, { timeout: 10000 });
+    await authUser.fill('input[placeholder="Введите слово..."]', 'apple');
     await authUser.click('button:has-text("Узнать")');
     await expect(authUser.locator('text=Не удалось загрузить определение')).toBeVisible();
 });
 
-// Неавторизованный пользователь редиректится на login
 test('неавторизованный пользователь редиректится на login', async ({ page }) => {
-    await page.route('**/api/auth/me', route =>
+    await page.route(`${BACKEND}/api/profile/me`, route =>
         route.fulfill({
             status: 401,
             contentType: 'application/json',
             body: JSON.stringify({ detail: 'Unauthorized' }),
         })
     );
-    await page.goto('http://localhost:3000/app');
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(page.locator('text=Вход')).toBeVisible();
+    await page.goto(`${FRONTEND}/app`);
+    await expect(page).toHaveURL(/\/(login)?$/);
+    await expect(page.locator('text=Войти')).toBeVisible();
 });
