@@ -62,7 +62,7 @@ const AdminPanel: React.FC = () => {
     };
 
     const updateRole = async (targetUserId: number, newRole: "user" | "admin") => {
-        if (!user || targetUserId === user.id) return;
+        if (!user || targetUserId === user.user_id) return;
 
         try {
             await adminApi.updateUserRole(targetUserId, newRole);
@@ -170,7 +170,7 @@ const AdminPanel: React.FC = () => {
                     </thead>
                     <tbody>
                     {users.map((u) => {
-                        const isSelf = u.id === user?.id;
+                        const isSelf = u.id === user?.user_id;
                         return (
                             <tr key={u.id}>
                                 <td>{u.email}</td>

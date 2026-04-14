@@ -36,6 +36,10 @@ api.interceptors.response.use(
                 return Promise.reject(error);
             }
         }
+        // Пробрасываем detail из FastAPI как message для удобства в компонентах
+        if (error.response?.data?.detail) {
+            error.message = error.response.data.detail;
+        }
         return Promise.reject(error);
     }
 );
@@ -45,9 +49,22 @@ export const authApi = {
     login: (email: string, password: string) =>
         api.post('/auth/login', { email, password }).then(res => res.data),
 
-    getMe: () => api.get('/profile/me').then(res => res.data),
+    getMe: () =>
+        api.get('/profile/me').then(res => res.data),
 
-    logout: () => api.post('/auth/logout').then(res => res.data),
+    logout: () =>
+        api.post('/auth/logout').then(res => res.data),
+
+    changePassword: (body: {
+        current_password: string;
+        new_password: string;
+        confirm_password: string;
+    }) => api.post('/profile/change-password', body).then(res => res.data),
+
+    changeEmail: (body: {
+        new_email: string;
+        password: string;
+    }) => api.post('/profile/change-email', body).then(res => res.data),
 };
 
 export const pdfApi = {
@@ -71,19 +88,24 @@ export const pdfApi = {
     getCards: (fileId: number, skip = 0, limit = 10) =>
         api.get(`/pdf/cards/${fileId}?skip=${skip}&limit=${limit}`).then(res => res.data),
 
-    listPDFs: () => api.get('/pdf/list').then(res => res.data),
+    listPDFs: () =>
+        api.get('/pdf/list').then(res => res.data),
 
     getHistory: (): Promise<{ success: boolean; history: ActionHistory[]; total: number }> =>
         api.get('/pdf/history').then(res => res.data),
 
-    deleteFile: (fileId: number) => api.delete(`/pdf/${fileId}`).then(res => res.data),
+    deleteFile: (fileId: number) =>
+        api.delete(`/pdf/${fileId}`).then(res => res.data),
 
-    getDownloadUrl: (fileId: number) => api.get(`/pdf/${fileId}/download`).then(res => res.data),
+    getDownloadUrl: (fileId: number) =>
+        api.get(`/pdf/${fileId}/download`).then(res => res.data),
 };
 
 // API для администратора
 export const adminApi = {
-    listUsers: (params?: any) => api.get('/admin/users', { params }).then(res => res.data),
+    listUsers: (params?: any) =>
+        api.get('/admin/users', { params }).then(res => res.data),
+
     updateUserRole: (userId: number, role: 'user' | 'admin') =>
         api.put(`/admin/users/${userId}/role`, { role }).then(res => res.data),
 };

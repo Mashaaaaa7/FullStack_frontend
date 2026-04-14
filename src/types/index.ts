@@ -41,10 +41,8 @@ export interface GetMe {
 }
 
 export type Role = "user" | "admin";
-//
 export interface CurrentUser {
-    id: number;
-    username: string;
-    role: Role;
-    token: string;
+    user_id: number;
+    email: string;
+    role: "user" | "admin";
 }
