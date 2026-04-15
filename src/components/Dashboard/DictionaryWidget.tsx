@@ -54,7 +54,7 @@ export default function DictionaryWidget() {
                     placeholder="Введите слово..."
                     disabled={loading}
                 />
-                <button type="submit" disabled={loading}>
+                <button type="submit" disabled={loading || !word.trim()}>
                     {loading ? 'Загрузка...' : 'Узнать'}
                 </button>
             </form>

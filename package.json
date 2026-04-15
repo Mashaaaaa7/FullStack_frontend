@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "test:watch": "vitest",
     "dev": "vite",
     "build": "tsc && vite build",

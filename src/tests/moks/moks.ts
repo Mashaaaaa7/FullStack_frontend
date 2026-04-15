@@ -1,64 +1,87 @@
-// tests/moks.ts
-import { test as base, Page, expect } from '@playwright/test';
+import { test as base, expect, Page, BrowserContext } from '@playwright/test';
 
-// Типы фикстур
+const BACKEND = 'http://127.0.0.1:8000';
+const FRONTEND = 'http://localhost:3000';
+
 type CustomFixtures = {
-    loginAsUser: Page;
-    loginAsAdmin: Page;
-    mockPdfApi: Page;
-    mockDictionaryApi: Page;
+    authUser: Page;
+    authAdmin: Page;
+    mockPdfApi: void;
+    mockDictionaryApi: void;
 };
 
-// Расширяем базовый test
+async function mockAuthRoutes(context: BrowserContext, userData: object) {
+    await context.route(`${BACKEND}/api/profile/me`, route =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(userData) })
+    );
+    await context.route(`${BACKEND}/api/auth/refresh`, route =>
+        route.fulfill({
+            status: 200, contentType: 'application/json',
+            body: JSON.stringify({ access_token: 'dummy', refresh_token: 'dummy' }),
+        })
+    );
+    await context.route(`${BACKEND}/api/auth/login`, route =>
+        route.fulfill({
+            status: 200, contentType: 'application/json',
+            body: JSON.stringify({ access_token: 'dummy', refresh_token: 'dummy' }),
+        })
+    );
+    await context.addInitScript(() => {
+        localStorage.setItem('access_token', 'mock-token');
+    });
+}
+
 export const test = base.extend<CustomFixtures>({
-    // Фикстура: пользователь
-    loginAsUser: async ({ page }, use) => {
-        await page.route('**/api/auth/login', route =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ email: 'user@example.com', role: 'user', token: 'token' }),
-            })
-        );
+    authUser: async ({ browser }, use) => {
+        const context = await browser.newContext();
+        await mockAuthRoutes(context, { user_id: 1, email: 'user@example.com', role: 'user' });
+        const page = await context.newPage();
+        await page.goto(`${FRONTEND}/app`);
         await use(page);
+        await context.close();
     },
 
-    // Фикстура: админ
-    loginAsAdmin: async ({ page }, use) => {
-        await page.route('**/api/auth/login', route =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ email: 'admin@example.com', role: 'admin', token: 'token' }),
-            })
-        );
+    authAdmin: async ({ browser }, use) => {
+        const context = await browser.newContext();
+        await mockAuthRoutes(context, { user_id: 2, email: 'admin@example.com', role: 'admin' });
+        const page = await context.newPage();
+        await page.goto(`${FRONTEND}/app`);
         await use(page);
+        await context.close();
     },
 
-    // Фикстура: PDF API
     mockPdfApi: async ({ page }, use) => {
-        await page.route('**/api/pdf/**', route =>
+        await page.route(`${BACKEND}/api/pdf/list*`, route =>
             route.fulfill({
-                status: 200,
-                contentType: 'application/json',
+                status: 200, contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    items: [{ id: 1, file_name: 'test.pdf', status: 'done', size: 1024, created_at: new Date().toISOString() }],
+                    total: 1,
+                }),
+            })
+        );
+        await page.route(`${BACKEND}/api/pdf/cards/*`, route =>
+            route.fulfill({
+                status: 200, contentType: 'application/json',
                 body: JSON.stringify({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }),
             })
         );
-        await use(page);
+        await use();
     },
 
-    // Фикстура: Dictionary API
     mockDictionaryApi: async ({ page }, use) => {
-        await page.route('**/api/dictionary', route =>
+        await page.route('**/api/dictionary*', route =>
             route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ cards: [{ id: 1, question: 'Q', answer: 'A' }], total: 1 }),
+                status: 200, contentType: 'application/json',
+                body: JSON.stringify({
+                    word: 'apple',
+                    definitions: [{ partOfSpeech: 'noun', definition: 'яблоко', example: 'I eat an apple.' }],
+                }),
             })
         );
-        await use(page);
+        await use();
     },
 });
 
-// Экспортируем expect
 export { expect };

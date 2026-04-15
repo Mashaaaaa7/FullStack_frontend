@@ -31,15 +31,9 @@ export const FileCard: React.FC<FileCardProps> = ({
         }
     };
 
-    const handleDelete = async () => {
-        try {
-            await pdfApi.deleteFile(file.id);
-            onDelete(file.id);
-        } catch (error) {
-            alert('Не удалось удалить файл');
-        }
+    const handleDelete = () => {
+        onDelete(file.id);
     };
-
 
     return (
         <div className={`file-card ${isSelected ? 'selected' : ''}`}>

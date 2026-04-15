@@ -8,7 +8,6 @@ type CustomFixtures = {
     authAdmin: Page;
 };
 
-// --- Мокает авторизационные маршруты на уровне context ---
 async function mockAuthRoutes(context: BrowserContext, userData: object) {
     await context.route(`${BACKEND}/api/profile/me`, route =>
         route.fulfill({
@@ -60,7 +59,7 @@ export const test = base.extend<CustomFixtures>({
     },
 });
 
-// --- Логин через UI ---
+// Логин через UI
 async function loginViaUI(page: Page, email: string) {
     await page.goto(`${FRONTEND}/login`);
     await page.fill('input[placeholder="Email"]', email);
@@ -69,7 +68,7 @@ async function loginViaUI(page: Page, email: string) {
     await expect(page).toHaveURL(/\/app$/, { timeout: 10000 });
 }
 
-// --- Мок PDF + карточки + словарь ---
+// Мок PDF + карточки + словарь
 async function setupMockApi(page: Page) {
     await page.route(`${BACKEND}/api/pdf/list*`, route =>
         route.fulfill({
@@ -100,7 +99,6 @@ async function setupMockApi(page: Page) {
         })
     );
 
-    // ✅ Wildcard — матчит ?word=apple на любом хосте
     await page.route('**/api/dictionary*', route =>
         route.fulfill({
             status: 200,
@@ -117,8 +115,6 @@ async function setupMockApi(page: Page) {
     );
 }
 
-// ==================== Тесты ====================
-
 test('user login показывает dashboard без admin меню', async ({ authUser }) => {
     await loginViaUI(authUser, 'user@example.com');
     await expect(authUser.locator('text=📖 Учебные карточки из PDF')).toBeVisible();
@@ -127,7 +123,6 @@ test('user login показывает dashboard без admin меню', async ({
 
 test('admin login показывает admin меню', async ({ authAdmin }) => {
     await loginViaUI(authAdmin, 'admin@example.com');
-    // ✅ text=Админ — частичное совпадение, надёжнее чем точный текст кнопки
     await expect(authAdmin.locator('text=Админ')).toBeVisible({ timeout: 10000 });
 });
 
@@ -184,7 +179,7 @@ test('admin Dictionary API показывает определение и адм
 });
 
 test('Dictionary API возвращает ошибку 401', async ({ authUser }) => {
-    // ✅ Wildcard переопределяет setupMockApi — страница ещё не загружена
+    // Wildcard переопределяет setupMockApi — страница ещё не загружена
     await authUser.route('**/api/dictionary*', route =>
         route.fulfill({
             status: 401,

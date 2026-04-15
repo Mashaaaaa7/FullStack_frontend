@@ -1,7 +1,7 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, beforeEach, vi } from 'vitest';
-import { renderWithRouterAndAuth } from './test-utils';
-import DictionaryWidget from "../components/Dashboard/DictionaryWidget.tsx";
+import {renderWithRouterAndAuth} from "../test-utils.tsx";
+import DictionaryWidget from "../../components/Dashboard/DictionaryWidget.tsx";
+
 
 const mockFetch = vi.fn();
 
