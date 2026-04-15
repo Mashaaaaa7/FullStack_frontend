@@ -11,7 +11,6 @@ vi.mock('../../Context/AuthContext', () => ({
     useAuth: vi.fn(),
 }));
 
-// Хелпер: мокает только нужные поля, остальное — заглушки vi.fn()
 function mockUseAuth(partial: { user: CurrentUser | null; loading?: boolean }) {
     vi.mocked(useAuth).mockReturnValue({
         user: partial.user,

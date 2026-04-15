@@ -9,7 +9,7 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json' },
 });
 
-// Перехватчик запросов: добавляем access token из localStorage
+// Перехватчик запросов: добавляем access token
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -18,12 +18,14 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Перехватчик ответов: обработка 401 (обновление токена)
+// Перехватчик ответов: обработка 401
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        const isLoginRequest = originalRequest.url?.includes('/auth/login');
+
+        if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
             originalRequest._retry = true;
             try {
                 const { data } = await axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true });
@@ -36,7 +38,7 @@ api.interceptors.response.use(
                 return Promise.reject(error);
             }
         }
-        // Пробрасываем detail из FastAPI как message для удобства в компонентах
+
         if (error.response?.data?.detail) {
             error.message = error.response.data.detail;
         }
@@ -44,7 +46,6 @@ api.interceptors.response.use(
     }
 );
 
-// API для аутентификации
 export const authApi = {
     login: (email: string, password: string) =>
         api.post('/auth/login', { email, password }).then(res => res.data),
@@ -101,7 +102,6 @@ export const pdfApi = {
         api.get(`/pdf/${fileId}/download`).then(res => res.data),
 };
 
-// API для администратора
 export const adminApi = {
     listUsers: (params?: any) =>
         api.get('/admin/users', { params }).then(res => res.data),
@@ -110,7 +110,6 @@ export const adminApi = {
         api.put(`/admin/users/${userId}/role`, { role }).then(res => res.data),
 };
 
-// API для словаря
 export const dictionaryApi = {
     getDefinition: (word: string) =>
         api.get(`/dictionary?word=${encodeURIComponent(word)}`).then(res => res.data),

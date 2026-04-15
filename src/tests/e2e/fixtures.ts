@@ -3,7 +3,7 @@ import { test as base, expect, Page } from '@playwright/test';
 export const BACKEND = 'http://127.0.0.1:8000';
 export const FRONTEND = 'http://localhost:3000';
 
-export const USER_CREDENTIALS = { email: 'mashavacyliea@gmail.com', password: 'Mary2004' };
+export const USER_CREDENTIALS = { email: 'mashavacylieva@gmail.com', password: 'Mary2004' };
 export const ADMIN_CREDENTIALS = { email: 'mary200438@gmail.com', password: 'Mary2004' };
 
 type Fixtures = {
