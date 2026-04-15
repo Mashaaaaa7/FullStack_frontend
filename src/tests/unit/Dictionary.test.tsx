@@ -1,7 +1,7 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
-import { renderWithRouterAndAuth } from './test-utils';
-import DictionaryWidget from "../components/Dashboard/DictionaryWidget.tsx";
+import DictionaryWidget from "../../components/Dashboard/DictionaryWidget.tsx";
+import {renderWithRouterAndAuth} from "../test-utils.tsx";
 
 const mockFetch = vi.fn();
 
@@ -46,7 +46,7 @@ describe('DictionaryWidget', () => {
         });
 
         renderWithRouterAndAuth(<DictionaryWidget />);
-//
+
         const input = screen.getByPlaceholderText(/Введите слово/i);
         const button = screen.getByRole('button', { name: /Узнать/i });
 

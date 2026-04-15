@@ -1,8 +1,8 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
-import { Login } from '../components/Auth/Login';
-import { renderWithRouterAndAuth } from './test-utils';
-import * as api from '../api/api';
+import {renderWithRouterAndAuth} from "../test-utils.tsx";
+import {Login} from "../../components/Auth/Login.tsx";
+import {authApi} from "../../api/api.ts";
 
 describe('LoginPage', () => {
     let loginSpy: any;
@@ -10,7 +10,7 @@ describe('LoginPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
-        loginSpy = vi.spyOn(api.authApi, 'login');
+        loginSpy = vi.spyOn(authApi, 'login');
     });
 
     afterEach(() => {

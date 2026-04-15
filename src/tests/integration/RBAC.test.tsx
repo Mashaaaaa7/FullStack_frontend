@@ -1,10 +1,10 @@
 import { screen, waitFor } from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
-import { DashboardApp } from '../components/Dashboard/DashboardApp';
-import { renderWithRouterAndAuth } from './test-utils';
-import { authApi } from '../api/api';
+import { DashboardApp } from '../../components/Dashboard/DashboardApp.tsx';
+import { renderWithRouterAndAuth } from '../test-utils.tsx';
+import { authApi } from '../../api/api';  // ← путь исправлен
 
-vi.mock('../api/api', () => ({
+vi.mock('../../api/api', () => ({         // ← путь исправлен с '../' на '../../'
     authApi: {
         getMe: vi.fn(),
         login: vi.fn(),
@@ -15,9 +15,7 @@ vi.mock('../api/api', () => ({
         getCards: vi.fn().mockResolvedValue({ cards: [], total: 0 }),
         list: vi.fn().mockResolvedValue({ files: [] }),
     },
-    dictionaryApi: {
-        getDefinition: vi.fn(),
-    },
+    dictionaryApi: { getDefinition: vi.fn() },
 }));
 
 describe('RBAC', () => {
@@ -27,21 +25,20 @@ describe('RBAC', () => {
     });
 
     const testCases = [
-        { role: 'user', canSeeAdmin: false },
-        { role: 'admin', canSeeAdmin: true },
+        { role: 'user' as const, canSeeAdmin: false },
+        { role: 'admin' as const, canSeeAdmin: true },
     ];
 
     testCases.forEach(({ role, canSeeAdmin }) => {
         it(`${role} ${canSeeAdmin ? 'видит' : 'не видит'} admin меню`, async () => {
-            // Мокаем getMe на нужного пользователя
-            (authApi.getMe as any).mockResolvedValue({
+            // ✅ Только здесь, внутри it()
+            vi.mocked(authApi.getMe).mockResolvedValue({
                 user_id: 1,
                 email: 'test@example.com',
-                role
+                role,
             });
 
             localStorage.setItem('access_token', 'mock-token');
-
             renderWithRouterAndAuth(<DashboardApp />);
 
             await waitFor(() => {
