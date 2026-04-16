@@ -4,7 +4,7 @@ import { ActionHistory } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 import { pdfApi, authApi } from '../../api/api';
-import { FileItem } from '../Files/FileList';
+import { FileItem } from '../Dashboard/Files/FileList';
 
 interface ChangePasswordForm {
     current_password: string;
@@ -121,7 +121,6 @@ export const Profile: React.FC = () => {
         }
     };
 
-    // --- Валидация email ---
     const validateEmailForm = (): boolean => {
         const errors: Partial<ChangeEmailForm> = {};
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

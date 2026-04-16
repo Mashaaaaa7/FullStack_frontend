@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useDebounce } from "../../hooks/useDebounce.ts";
-import api from "../../api/api.ts";
+import { useDebounce } from "../../../hooks/useDebounce.ts";
+import api from "../../../api/api.ts";
 import { FileCard } from "./FileCard.tsx";
 import { Pagination } from "./Pagination.tsx";
 import toast from 'react-hot-toast';

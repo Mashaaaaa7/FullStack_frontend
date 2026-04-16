@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import {AuthForm} from "../AuthForm/AuthForm.tsx";
 import {useAuth} from "../../Context/AuthContext.tsx";
+import {AuthForm} from "./AuthForm/AuthForm.tsx";
 
 export const Login: React.FC = () => {
     const [error, setError] = useState('');

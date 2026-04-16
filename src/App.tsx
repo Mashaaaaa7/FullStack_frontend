@@ -5,13 +5,13 @@ import { Login } from './components/Auth/Login';
 import { Register } from './components/Auth/Register';
 import { DashboardApp } from './components/Dashboard/DashboardApp';
 import { Profile } from './components/Profile/Profile';
-import { Navbar } from './components/Layout/Navbar';
-import { PrivateRoute } from './components/routes/PrivateRoute';
-import Home from './components/Home';
-import About from './components/About';
+import { Navbar } from './components/Layout/routes/Navbar.tsx';
+import { PrivateRoute } from './components/Layout/routes/PrivateRoute';
 import AdminPanel from "./components/AdminPanel/AdminPanel.tsx";
-import { Forbidden } from "./components/routes/Forbidden.tsx";
+import { Forbidden } from "./components/Layout/routes/Forbidden.tsx";
 import './App.css';
+import About from "./components/Views/About.tsx";
+import Home from "./components/Views/Home.tsx";
 
 const AppContent: React.FC = () => {
     return (
@@ -19,9 +19,9 @@ const AppContent: React.FC = () => {
             <Navbar />
             <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/about" element={<About />} />
                 <Route path="/forbidden" element={<Forbidden />} />
 
                 <Route element={<PrivateRoute allowedRoles={['user', 'admin']} />}>
