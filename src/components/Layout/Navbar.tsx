@@ -1,11 +1,18 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 import { useAuth } from '../../Context/AuthContext';
 import './Navbar.css';
 
 export const Navbar: React.FC = () => {
     const { user, logout } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout(); // твоя функция из AuthContext
+        navigate('/login', { replace: true });
+    };
+
 
     if (!user) {
         return null;
@@ -40,9 +47,8 @@ export const Navbar: React.FC = () => {
                     </Link>
                 )}
 
-                <button onClick={logout} className="navbar-logout">
-                    Выйти
-                </button>
+                <button onClick={handleLogout} className="navbar-logout">Выйти</button>
+
             </div>
         </nav>
     );
