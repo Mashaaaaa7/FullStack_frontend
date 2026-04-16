@@ -26,6 +26,7 @@ export interface UploadResponse {
 }
 
 export interface ActionHistory {
+    created_at: string;
     id?: number;
     action: string;
     filename?: string;
