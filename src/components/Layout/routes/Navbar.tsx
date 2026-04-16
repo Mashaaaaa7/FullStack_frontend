@@ -9,7 +9,7 @@ export const Navbar: React.FC = () => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        logout(); // твоя функция из AuthContext
+        logout();
         navigate('/login', { replace: true });
     };
 

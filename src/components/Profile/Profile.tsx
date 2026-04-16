@@ -48,7 +48,6 @@ export const Profile: React.FC = () => {
     const [emailErrors, setEmailErrors] = useState<Partial<ChangeEmailForm>>({});
     const [emailLoading, setEmailLoading] = useState(false);
 
-    // ✅ Грузим только когда user реально загружен
     useEffect(() => {
         if (!user?.user_id) return;
         loadHistory();
@@ -152,10 +151,13 @@ export const Profile: React.FC = () => {
         }
     };
 
-    const formatDate = (dateString: string) =>
-        new Date(dateString).toLocaleString('ru-RU');
+    const formatDate = (dateString: string | null | undefined) => {
+        if (!dateString) return '—';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime()) || date.getFullYear() < 2000) return '—';
+        return date.toLocaleString('ru-RU');
+    };
 
-    // ✅ Пока user не загружен — показываем общий лоадер
     if (!user) {
         return (
             <div className="profile-container">
