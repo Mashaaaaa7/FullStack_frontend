@@ -26,7 +26,7 @@ export const Login: React.FC = () => {
                 onSubmit={handleSubmit}
                 switchLink={{ text: "Нет аккаунта?", label: "Зарегистрироваться", to: "/register" }}
             />
-            {error && <p className="error">{error}</p>}
+            {error && <p className="error" role="alert">{error}</p>}
         </div>
     );
 };

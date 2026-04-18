@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { authApi } from "../api/api";
+import api, { authApi } from "../api/api";
 import { CurrentUser } from "../types";
 
 interface AuthContextType {
@@ -32,7 +32,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = async (email: string, password: string) => {
-        // ← исправлен баг: было сохранение всего объекта как токена
         const response = await authApi.login(email, password);
         localStorage.setItem('access_token', response.access_token);
         const userData = await authApi.getMe();
@@ -40,9 +39,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const logout = async () => {
-        try { await authApi.logout(); } finally {
-            localStorage.removeItem('access_token');
-            setUser(null);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        setUser(null);
+        try {
+            await api.post('/api/auth/logout');
+        } catch {
+            // игнорируем
         }
     };
 

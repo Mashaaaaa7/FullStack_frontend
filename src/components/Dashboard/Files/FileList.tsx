@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from "../../../hooks/useDebounce.ts";
-import api from "../../../api/api.ts";
+import api, { pdfApi } from "../../../api/api.ts";
 import { FileCard } from "./FileCard.tsx";
 import { Pagination } from "./Pagination.tsx";
 import toast from 'react-hot-toast';
@@ -91,8 +91,8 @@ export const FileList: React.FC<FileListProps> = ({
         if (!fileToDelete) return;
         setDeleteModalOpen(false);
         try {
-            await api.delete(`/pdf/${fileToDelete.id}`);
-            await fetchFiles(); // перезагружаем список с сервера
+            await pdfApi.deleteFile(fileToDelete.id);
+            await fetchFiles();
             toast.success('Файл удалён');
         } catch (err: any) {
             const detail = err.response?.data?.detail || 'Ошибка удаления';
@@ -121,6 +121,7 @@ export const FileList: React.FC<FileListProps> = ({
     const handlePageChange = (newPage: number) => {
         updateParams({ page: String(newPage) });
     };
+
 
     return (
         <div className="files-container">
@@ -178,7 +179,7 @@ export const FileList: React.FC<FileListProps> = ({
                         <option value="10">10</option>
                         <option value="15">15</option>
                         <option value="20">20</option>
-                        <option value="50">25</option>
+                        <option value="25">25</option>
                     </select>
                 </div>
             </div>

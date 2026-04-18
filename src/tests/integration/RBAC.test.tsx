@@ -1,10 +1,9 @@
-import { screen, waitFor } from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
 import { DashboardApp } from '../../components/Dashboard/DashboardApp.tsx';
-import { renderWithRouterAndAuth } from '../test-utils.tsx';
-import { authApi } from '../../api/api';  // ← путь исправлен
+import { authApi } from '../../api/api';
 
-vi.mock('../../api/api', () => ({         // ← путь исправлен с '../' на '../../'
+vi.mock('../../api/api', () => ({
     authApi: {
         getMe: vi.fn(),
         login: vi.fn(),
@@ -12,10 +11,10 @@ vi.mock('../../api/api', () => ({         // ← путь исправлен с 
         refresh: vi.fn(),
     },
     pdfApi: {
-        getCards: vi.fn().mockResolvedValue({ cards: [], total: 0 }),
-        list: vi.fn().mockResolvedValue({ files: [] }),
-    },
-    dictionaryApi: { getDefinition: vi.fn() },
+        listPDFs: vi.fn().mockResolvedValue({items: [], total: 0}),
+        getHistory: vi.fn().mockResolvedValue({history: [], total: 0}),
+        getCards: vi.fn().mockResolvedValue({cards: [], total: 0}),
+    }
 }));
 
 describe('RBAC', () => {
@@ -31,7 +30,6 @@ describe('RBAC', () => {
 
     testCases.forEach(({ role, canSeeAdmin }) => {
         it(`${role} ${canSeeAdmin ? 'видит' : 'не видит'} admin меню`, async () => {
-            // ✅ Только здесь, внутри it()
             vi.mocked(authApi.getMe).mockResolvedValue({
                 user_id: 1,
                 email: 'test@example.com',
@@ -39,13 +37,13 @@ describe('RBAC', () => {
             });
 
             localStorage.setItem('access_token', 'mock-token');
-            renderWithRouterAndAuth(<DashboardApp />);
+            render(<DashboardApp />);
 
             await waitFor(() => {
                 if (canSeeAdmin) {
-                    expect(screen.getByText(/admin/i)).toBeInTheDocument();
+                    expect(screen.getByText('Админ')).toBeInTheDocument();
                 } else {
-                    expect(screen.queryByText(/admin/i)).not.toBeInTheDocument();
+                    expect(screen.queryByText('Админ')).not.toBeInTheDocument();
                 }
             });
         });

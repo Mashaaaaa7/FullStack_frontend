@@ -1,8 +1,7 @@
-import { screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, beforeEach, vi } from 'vitest';
-import {renderWithRouterAndAuth} from "../test-utils.tsx";
+import {screen, fireEvent, waitFor, render} from '@testing-library/react';
 import {Login} from "../../components/Auth/Login.tsx";
 import {authApi} from "../../api/api.ts";
+import { describe, it, beforeEach, afterEach, vi } from 'vitest';
 
 describe('LoginPage', () => {
     let loginSpy: any;
@@ -18,7 +17,7 @@ describe('LoginPage', () => {
     });
 
     it('рендерится корректно', () => {
-        renderWithRouterAndAuth(<Login />);
+        render(<Login />);
         expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
         expect(screen.getByPlaceholderText(/Пароль/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /войти/i })).toBeInTheDocument();
@@ -30,7 +29,7 @@ describe('LoginPage', () => {
             refresh_token: 'mock-refresh',
         });
 
-        renderWithRouterAndAuth(<Login />);
+        render(<Login />);
 
         const emailInput = screen.getByPlaceholderText(/email/i);
         const passwordInput = screen.getByPlaceholderText(/Пароль/i);
@@ -51,7 +50,7 @@ describe('LoginPage', () => {
             response: { data: { detail: 'Invalid credentials' } }
         });
 
-        renderWithRouterAndAuth(<Login />);
+        render(<Login />);
 
         const emailInput = screen.getByPlaceholderText(/email/i);
         const passwordInput = screen.getByPlaceholderText(/Пароль/i);
@@ -62,7 +61,6 @@ describe('LoginPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            // Правильный текст ошибки из компонента
             expect(screen.getByText(/Ошибка при входе/i)).toBeInTheDocument();
         });
     });

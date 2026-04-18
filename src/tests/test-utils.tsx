@@ -3,7 +3,6 @@ import { render } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "../Context/AuthContext";
 
-// Обертка для рендера компонентов с роутером и Auth
 export const renderWithRouterAndAuth = (ui: React.ReactNode) =>
     render(
         <BrowserRouter>

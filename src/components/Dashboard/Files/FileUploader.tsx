@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useAuth } from "../../../Context/AuthContext.tsx";
 import { pdfApi } from "../../../api/api.ts";
-import '../../../App.css'; // для стилей загрузчика
+import '../../../App.css';
 
 interface FileUploaderProps {
     onUploadSuccess?: () => void;

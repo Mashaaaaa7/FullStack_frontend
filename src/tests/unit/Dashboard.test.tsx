@@ -2,9 +2,9 @@ import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
 import { DashboardApp } from '../../components/Dashboard/DashboardApp.tsx';
-import { renderWithRouterAndAuth } from '../test-utils.tsx';
 import { useAuth } from '../../Context/AuthContext.tsx';
 import { CurrentUser } from '../../types';
+import { renderWithRouterAndAuth } from '../test-utils.tsx';
 
 vi.mock('../../Context/AuthContext', () => ({
     AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -39,7 +39,7 @@ describe('RBAC Dashboard', () => {
             mockUseAuth({ user: { user_id: 1, email: 'test@example.com', role } });
 
             localStorage.setItem('access_token', 'mock-token');
-            renderWithRouterAndAuth(<DashboardApp />);
+            renderWithRouterAndAuth(<DashboardApp />); // ← исправлено
 
             await waitFor(() => {
                 expect(screen.getByText(expectedRoleText)).toBeInTheDocument();
