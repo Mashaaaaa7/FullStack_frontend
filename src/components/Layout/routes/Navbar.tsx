@@ -1,15 +1,17 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../Context/AuthContext';
-import './Navbar.css';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
+import { useAuth } from '../../../Context/AuthContext.tsx';
+import '../Navbar.css';
 
 export const Navbar: React.FC = () => {
     const { user, logout } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
 
-    if (!user) {
-        return null;
-    }
+    const handleLogout = () => {
+        logout();
+        navigate('/login', { replace: true });
+    };
 
     return (
         <nav className="navbar">
@@ -30,8 +32,7 @@ export const Navbar: React.FC = () => {
                     👤 Профиль
                 </Link>
 
-                {/* Кнопка для админа */}
-                {user.role === 'admin' && (
+                {user?.role === 'admin' && (
                     <Link
                         to="/admin"
                         className={`navbar-item ${location.pathname === '/admin' ? 'active' : ''}`}
@@ -40,9 +41,8 @@ export const Navbar: React.FC = () => {
                     </Link>
                 )}
 
-                <button onClick={logout} className="navbar-logout">
-                    Выйти
-                </button>
+                <button onClick={handleLogout} className="navbar-logout">Выйти</button>
+
             </div>
         </nav>
     );

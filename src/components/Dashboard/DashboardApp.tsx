@@ -3,8 +3,8 @@ import { Deck, Card } from '../../types';
 import { pdfApi } from '../../api/api';
 import { useAuth } from '../../Context/AuthContext';
 import '../../App.css';
-import { FileList, FileItem } from '../Files/FileList';
-import FileUploader from "../Files/FileUploader.tsx";
+import { FileList, FileItem } from './Files/FileList';
+import FileUploader from "./Files/FileUploader.tsx";
 import DictionaryWidget from "./DictionaryWidget.tsx";
 
 interface DeckWithId extends Deck {

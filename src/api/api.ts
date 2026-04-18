@@ -9,7 +9,6 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json' },
 });
 
-// Перехватчик запросов: добавляем access token
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -24,8 +23,9 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
         const isLoginRequest = originalRequest.url?.includes('/auth/login');
+        const isLogoutRequest = originalRequest.url?.includes('/auth/logout'); // ← добавить
 
-        if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest && !isLogoutRequest) {
             originalRequest._retry = true;
             try {
                 const { data } = await axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true });

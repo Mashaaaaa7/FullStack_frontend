@@ -1,60 +1,50 @@
-import { screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, beforeEach, vi } from 'vitest';
-import DictionaryWidget from "../../components/Dashboard/DictionaryWidget.tsx";
-import {renderWithRouterAndAuth} from "../test-utils.tsx";
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, beforeEach } from 'vitest';
+import DictionaryWidget from '../../components/Dashboard/DictionaryWidget.tsx';
 
-const mockFetch = vi.fn();
+describe('Dictionary loading state', () => {
+    beforeEach(() => vi.unstubAllGlobals());
 
-describe('DictionaryWidget', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        localStorage.setItem('access_token', 'mock-token');
-        global.fetch = mockFetch;
-    });
-
-    it('загружает данные после запроса', async () => {
-        mockFetch.mockResolvedValueOnce({
+    it('показывает загрузку и затем данные', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
             ok: true,
             json: async () => ({
                 word: 'apple',
-                phonetic: '/ˈæp.əl/',
-                definitions: [
-                    { partOfSpeech: 'noun', definition: 'яблоко', example: 'I eat an apple.' }
-                ]
-            })
+                phonetic: null,
+                definitions: [{ partOfSpeech: 'noun', definition: 'яблоко', example: 'I eat an apple.' }],
+            }),
+        }));
+
+        render(<DictionaryWidget />);
+
+        fireEvent.change(screen.getByPlaceholderText('Введите слово...'), {
+            target: { value: 'apple' },
         });
+        fireEvent.click(screen.getByRole('button', { name: /узнать/i }));
 
-        renderWithRouterAndAuth(<DictionaryWidget />);
+        // Кнопка сразу становится "Загрузка..."
+        expect(screen.getByRole('button', { name: /загрузка/i })).toBeInTheDocument();
 
-        const input = screen.getByPlaceholderText(/Введите слово/i);
-        const button = screen.getByRole('button', { name: /Узнать/i });
-
-        fireEvent.change(input, { target: { value: 'apple' } });
-        fireEvent.click(button);
-
-        // Ждём появления результата
-        await waitFor(() => {
-            expect(screen.getByText(/яблоко/i)).toBeInTheDocument();
-        });
+        await waitFor(() =>
+            expect(screen.getByText(/яблоко/i)).toBeInTheDocument()
+        );
     });
 
-    it('показывает ошибку при 401', async () => {
-        mockFetch.mockResolvedValueOnce({
+    it('показывает ошибку при неавторизованном', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
             ok: false,
             status: 401,
-            json: async () => ({ detail: 'Unauthorized' })
+        }));
+
+        render(<DictionaryWidget />);
+
+        fireEvent.change(screen.getByPlaceholderText('Введите слово...'), {
+            target: { value: 'apple' },
         });
+        fireEvent.click(screen.getByRole('button', { name: /узнать/i }));
 
-        renderWithRouterAndAuth(<DictionaryWidget />);
-
-        const input = screen.getByPlaceholderText(/Введите слово/i);
-        const button = screen.getByRole('button', { name: /Узнать/i });
-
-        fireEvent.change(input, { target: { value: 'test' } });
-        fireEvent.click(button);
-
-        await waitFor(() => {
-            expect(screen.getByText(/Не удалось загрузить определение/i)).toBeInTheDocument();
-        });
+        await waitFor(() =>
+            expect(screen.getByText(/не удалось загрузить/i)).toBeInTheDocument()
+        );
     });
 });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import {AuthForm} from "../AuthForm/AuthForm.tsx";
 import {useAuth} from "../../Context/AuthContext.tsx";
+import {AuthForm} from "./AuthForm/AuthForm.tsx";
 
 export const Login: React.FC = () => {
     const [error, setError] = useState('');
@@ -26,7 +26,7 @@ export const Login: React.FC = () => {
                 onSubmit={handleSubmit}
                 switchLink={{ text: "Нет аккаунта?", label: "Зарегистрироваться", to: "/register" }}
             />
-            {error && <p className="error">{error}</p>}
+            {error && <p className="error" role="alert">{error}</p>}
         </div>
     );
 };

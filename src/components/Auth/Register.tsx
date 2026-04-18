@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthForm } from "../AuthForm/AuthForm.tsx";
+import {AuthForm} from "./AuthForm/AuthForm.tsx";
 
 export const Register: React.FC = () => {
     const navigate = useNavigate();

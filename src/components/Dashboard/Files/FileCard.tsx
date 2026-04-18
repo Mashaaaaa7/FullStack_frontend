@@ -1,7 +1,7 @@
 import React from 'react';
-import { useAuth } from "../../Context/AuthContext.tsx";
-import { pdfApi } from '../../api/api';
-import { FileItem } from './FileList';
+import { useAuth } from "../../../Context/AuthContext.tsx";
+import { pdfApi } from '../../../api/api.ts';
+import { FileItem } from './FileList.tsx';
 
 interface FileCardProps {
     file: FileItem;

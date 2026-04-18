@@ -4,7 +4,7 @@ import { ActionHistory } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 import { pdfApi, authApi } from '../../api/api';
-import { FileItem } from '../Files/FileList';
+import { FileItem } from '../Dashboard/Files/FileList';
 
 interface ChangePasswordForm {
     current_password: string;
@@ -22,7 +22,7 @@ export const Profile: React.FC = () => {
     const navigate = useNavigate();
 
     const [actionHistory, setActionHistory] = useState<ActionHistory[]>([]);
-    const [historyLoading, setHistoryLoading] = useState(true);
+    const [historyLoading, setHistoryLoading] = useState(false);
 
     const [files, setFiles] = useState<FileItem[]>([]);
     const [filesLoading, setFilesLoading] = useState(false);
@@ -49,6 +49,7 @@ export const Profile: React.FC = () => {
     const [emailLoading, setEmailLoading] = useState(false);
 
     useEffect(() => {
+        if (!user?.user_id) return;
         loadHistory();
         loadUserFiles();
     }, [user?.user_id]);
@@ -87,7 +88,6 @@ export const Profile: React.FC = () => {
         setMessageType(type);
     };
 
-    // --- Валидация пароля ---
     const validatePasswordForm = (): boolean => {
         const errors: Partial<ChangePasswordForm> = {};
         if (!passwordForm.current_password)
@@ -121,7 +121,6 @@ export const Profile: React.FC = () => {
         }
     };
 
-    // --- Валидация email ---
     const validateEmailForm = (): boolean => {
         const errors: Partial<ChangeEmailForm> = {};
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -152,11 +151,19 @@ export const Profile: React.FC = () => {
         }
     };
 
-    const formatDate = (dateString: string) =>
-        new Date(dateString).toLocaleString('ru-RU');
+    const formatDate = (dateString: string | null | undefined) => {
+        if (!dateString) return '—';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime()) || date.getFullYear() < 2000) return '—';
+        return date.toLocaleString('ru-RU');
+    };
 
-    if (historyLoading) {
-        return <div className="profile-container"><div className="loading">Загрузка...</div></div>;
+    if (!user) {
+        return (
+            <div className="profile-container">
+                <div className="loading">Загрузка профиля...</div>
+            </div>
+        );
     }
 
     return (
@@ -173,6 +180,7 @@ export const Profile: React.FC = () => {
             )}
 
             <div className="profile-content">
+
                 {/* Личная информация */}
                 <section className="profile-info">
                     <h2>Личная информация</h2>
@@ -182,7 +190,7 @@ export const Profile: React.FC = () => {
                         <div className="info-item">
                             <label>Email:</label>
                             <div className="info-display">
-                                <span>{user?.email}</span>
+                                <span>{user.email}</span>
                                 <button
                                     className="edit-btn"
                                     onClick={() => setShowEmailForm(v => !v)}
@@ -288,27 +296,51 @@ export const Profile: React.FC = () => {
                     </div>
                 </section>
 
-                {(filesLoading || filesError || files.length > 0) && (
-                    <section className="profile-files">
-                        <h2>📊 История действий ({actionHistory.length})</h2>
-                        {filesLoading && <p>Загрузка...</p>}
-                        {filesError && <p className="error">{filesError}</p>}
+                {/* Файлы */}
+                <section className="profile-files">
+                    <h2>📁 Мои файлы {!filesLoading && `(${files.length})`}</h2>
+                    {filesLoading && <p>Загрузка...</p>}
+                    {filesError && <p className="error">{filesError}</p>}
+                    {!filesLoading && (
                         <div className="files-list">
-                            {files.map(file => (
-                                <div key={file.id} className="file-item">
-                                    <div className="file-header">
-                                        <span className="file-name">{file.file_name}</span>
-                                        <span className={`status-badge ${file.status}`}>{file.status}</span>
+                            {files.length === 0
+                                ? <p className="empty">Файлов пока нет</p>
+                                : files.map(file => (
+                                    <div key={file.id} className="file-item">
+                                        <div className="file-header">
+                                            <span className="file-name">{file.file_name}</span>
+                                            <span className={`status-badge ${file.status}`}>{file.status}</span>
+                                        </div>
+                                        <div className="file-details">
+                                            <span>Размер: {(file.size / 1024).toFixed(2)} КБ</span>
+                                            <span>Загружен: {formatDate(file.created_at)}</span>
+                                        </div>
                                     </div>
-                                    <div className="file-details">
-                                        <span>Размер: {(file.size / 1024).toFixed(2)} КБ</span>
-                                        <span>Загружен: {formatDate(file.created_at)}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            }
                         </div>
-                    </section>
-                )}
+                    )}
+                </section>
+
+                {/* История действий */}
+                <section className="profile-history">
+                    <h2>📊 История действий {!historyLoading && `(${actionHistory.length})`}</h2>
+                    {historyLoading && <p>Загрузка...</p>}
+                    {!historyLoading && (
+                        <div className="history-list">
+                            {actionHistory.length === 0
+                                ? <p className="empty">История пуста</p>
+                                : actionHistory.map((item, i) => (
+                                    <div key={i} className="history-item">
+                                        <span>{item.action}</span>
+                                        <span>{formatDate(item.created_at)}</span>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    )}
+                </section>
+
             </div>
         </div>
     );
