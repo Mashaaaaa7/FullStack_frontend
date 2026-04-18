@@ -117,7 +117,11 @@ test('user не может удалить чужой PDF', async ({ userPage }) 
 
 // Dictionary
 
+// app.spec.ts — оба Dictionary теста
 test('Dictionary возвращает определение слова', async ({ authUser }) => {
+    await authUser.waitForURL(/\/app/, { timeout: 10000 }); // ← убедиться что на /app
+    await authUser.goto(`${FRONTEND}/app`);                 // ← перейти к нужному разделу
+
     await authUser.route(`${BACKEND}/api/dictionary*`, route =>
         route.fulfill({
             status: 200,
@@ -131,13 +135,11 @@ test('Dictionary возвращает определение слова', async 
 
     await authUser.fill('input[placeholder="Введите слово..."]', 'apple');
     await authUser.click('button:has-text("Узнать")');
-
-    await expect(
-        authUser.locator('h4').filter({ hasText: 'apple' })
-    ).toBeVisible({ timeout: 5000 });
+    await expect(authUser.locator('h4').filter({ hasText: 'apple' })).toBeVisible({ timeout: 5000 });
 });
 
 test('Dictionary не отправляет пустой запрос', async ({ authUser }) => {
+    await authUser.waitForURL(/\/app/, { timeout: 10000 }); // ← добавить
     await authUser.fill('input[placeholder="Введите слово..."]', '');
     await expect(authUser.locator('button:has-text("Узнать")')).toBeDisabled();
 });
