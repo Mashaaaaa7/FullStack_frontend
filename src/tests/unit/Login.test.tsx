@@ -1,67 +1,59 @@
-import {screen, fireEvent, waitFor, render} from '@testing-library/react';
-import {Login} from "../../components/Auth/Login.tsx";
-import {authApi} from "../../api/api.ts";
-import { describe, it, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
+import { Login } from '../../components/Auth/Login';
+import * as AuthContext from '../../Context/AuthContext';
+
+const mockLogin = vi.fn();
+
+vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+    user: null,
+    setUser: vi.fn(),
+    loading: false,
+    login: mockLogin,
+    logout: vi.fn(),
+    isAuthenticated: false,
+    hasRole: vi.fn(() => false),
+});
+
+const renderLogin = () =>
+    render(
+        <MemoryRouter>
+            <Login />
+        </MemoryRouter>
+    );
 
 describe('LoginPage', () => {
-    let loginSpy: any;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        localStorage.clear();
-        loginSpy = vi.spyOn(authApi, 'login');
-    });
-
-    afterEach(() => {
-        loginSpy.mockRestore();
-    });
+    beforeEach(() => vi.clearAllMocks());
 
     it('рендерится корректно', () => {
-        render(<Login />);
-        expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/Пароль/i)).toBeInTheDocument();
+        renderLogin();
+        expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Пароль')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /войти/i })).toBeInTheDocument();
     });
 
     it('успешный login', async () => {
-        loginSpy.mockResolvedValue({
-            access_token: 'mock-token',
-            refresh_token: 'mock-refresh',
-        });
+        mockLogin.mockResolvedValueOnce(undefined);
+        renderLogin();
 
-        render(<Login />);
+        fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@test.com' } });
+        fireEvent.change(screen.getByPlaceholderText('Пароль'), { target: { value: 'password123' } });
+        fireEvent.click(screen.getByRole('button', { name: /войти/i }));
 
-        const emailInput = screen.getByPlaceholderText(/email/i);
-        const passwordInput = screen.getByPlaceholderText(/Пароль/i);
-        const submitButton = screen.getByRole('button', { name: /войти/i });
-
-        fireEvent.change(emailInput, { target: { value: 'user@test.com' } });
-        fireEvent.change(passwordInput, { target: { value: 'password' } });
-        fireEvent.click(submitButton);
-
-        await waitFor(() => {
-            expect(loginSpy).toHaveBeenCalledWith('user@test.com', 'password');
-            expect(localStorage.getItem('access_token')).toBe('mock-token');
-        });
+        await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('user@test.com', 'password123'));
     });
 
     it('неуспешный login показывает ошибку', async () => {
-        loginSpy.mockRejectedValue({
-            response: { data: { detail: 'Invalid credentials' } }
-        });
+        mockLogin.mockRejectedValueOnce(new Error('Неверный пароль'));
+        renderLogin();
 
-        render(<Login />);
+        fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'wrong@test.com' } });
+        fireEvent.change(screen.getByPlaceholderText('Пароль'), { target: { value: 'wrongpass' } });
+        fireEvent.click(screen.getByRole('button', { name: /войти/i }));
 
-        const emailInput = screen.getByPlaceholderText(/email/i);
-        const passwordInput = screen.getByPlaceholderText(/Пароль/i);
-        const submitButton = screen.getByRole('button', { name: /войти/i });
-
-        fireEvent.change(emailInput, { target: { value: 'bad@test.com' } });
-        fireEvent.change(passwordInput, { target: { value: 'wrong' } });
-        fireEvent.click(submitButton);
-
-        await waitFor(() => {
-            expect(screen.getByText(/Ошибка при входе/i)).toBeInTheDocument();
-        });
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toBeInTheDocument()
+        );
     });
 });

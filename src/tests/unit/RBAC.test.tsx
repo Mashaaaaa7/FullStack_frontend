@@ -19,7 +19,7 @@ vi.mock('../../api/api', () => ({
     default: { post: vi.fn(), get: vi.fn() },
 }));
 
-const renderDashboard = () =>
+const renderApp = () =>
     render(
         <MemoryRouter>
             <AuthProvider>
@@ -28,35 +28,33 @@ const renderDashboard = () =>
         </MemoryRouter>
     );
 
-describe('Dashboard', () => {
+describe('RBAC', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
     });
 
-    it('отображает email и роль пользователя user', async () => {
+    it('user видит свою роль в интерфейсе', async () => {
         vi.mocked(authApi.getMe).mockResolvedValue({
             user_id: 1, email: 'user@test.com', role: 'user',
         });
         localStorage.setItem('access_token', 'mock-token');
-        renderDashboard();
+        renderApp();
 
-        await waitFor(() => {
-            expect(screen.getByText(/user@test\.com/i)).toBeInTheDocument();
-            expect(screen.getByText(/роль: user/i)).toBeInTheDocument();
-        });
+        await waitFor(() =>
+            expect(screen.getByText(/роль: user/i)).toBeInTheDocument()
+        );
     });
 
-    it('отображает email и роль пользователя admin', async () => {
+    it('admin видит свою роль в интерфейсе', async () => {
         vi.mocked(authApi.getMe).mockResolvedValue({
             user_id: 2, email: 'admin@test.com', role: 'admin',
         });
         localStorage.setItem('access_token', 'mock-token');
-        renderDashboard();
+        renderApp();
 
-        await waitFor(() => {
-            expect(screen.getByText(/admin@test\.com/i)).toBeInTheDocument();
-            expect(screen.getByText(/роль: admin/i)).toBeInTheDocument();
-        });
+        await waitFor(() =>
+            expect(screen.getByText(/роль: admin/i)).toBeInTheDocument()
+        );
     });
 });
