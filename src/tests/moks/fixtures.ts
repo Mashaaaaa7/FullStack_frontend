@@ -17,7 +17,6 @@ async function mockAuthRoutes(context: BrowserContext, userData: object) {
     await context.route(`${BACKEND}/api/profile/me`, route =>
         route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(userData) })
     );
-    // ✅ refresh возвращает новый токен — interceptor НЕ делает window.location.href
     await context.route(`${BACKEND}/api/auth/refresh`, route =>
         route.fulfill({
             status: 200,

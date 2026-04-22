@@ -70,8 +70,6 @@ test('user видит dashboard без admin-меню', async ({ userPage }) => 
 
 // PDF
 
-// app.spec.ts
-
 test('user видит только свои PDF файлы', async ({ userPage }) => {
     const res = await userPage.evaluate(async (backend) => {
         const token = localStorage.getItem('access_token');
