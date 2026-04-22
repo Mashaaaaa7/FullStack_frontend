@@ -1,4 +1,4 @@
 /node_modules/
 .idea
 .venv
-test-results
+/test-results/
