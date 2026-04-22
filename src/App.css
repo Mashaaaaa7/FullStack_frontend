@@ -281,7 +281,6 @@ body {
     box-shadow: none;
 }
 
-/* Slider styles */
 .slider-container {
     margin-top: 1.5rem;
     padding: 1.5rem;
@@ -491,7 +490,6 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     color: #555;
 }
 
-/* Cards Header */
 .cards-header {
     display: flex;
     justify-content: space-between;
@@ -923,7 +921,6 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     align-items: center;
 }
 
-/* Анимация появления модального окна */
 @keyframes modalFadeIn {
     from {
         opacity: 0;
@@ -939,7 +936,6 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     animation: modalFadeIn 0.3s ease;
 }
 
-/* ========== Публичная страница (лендинг) ========== */
 .landing-page {
     max-width: 1200px;
     margin: 0 auto;
@@ -1019,7 +1015,6 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     background: #27ae60;
 }
 
-/* ========== Виджет словаря ========== */
 .dictionary-widget {
     background: white;
     border-radius: 12px;
@@ -1120,7 +1115,7 @@ input[type="range"]:disabled::-webkit-slider-thumb {
 
 .app-main {
     flex: 3;
-    min-width: 0; /* предотвращает переполнение */
+    min-width: 0;
 }
 
 .sidebar {
@@ -1130,12 +1125,11 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     align-self: flex-start;
 }
 
-/* ========== Страница "О проекте" ========== */
 .about-page {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
-    min-height: calc(100vh - 80px); /* чтобы футер был внизу, если нужно */
+    min-height: calc(100vh - 80px);
 }
 
 .about-page main {
@@ -1181,7 +1175,6 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
 }
 
-/* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
     .dashboard-content {
         flex-direction: column;

@@ -25,16 +25,12 @@ export const DashboardApp: React.FC = () => {
     const [totalCards, setTotalCards] = useState(0);
     const cardsPerPage = 6;
     const [deleteCardsModalOpen, setDeleteCardsModalOpen] = useState(false);
-
-    // Реф для сохранения позиции скролла
     const scrollPositionRef = useRef<number>(0);
 
-    // Функция сохранения позиции
     const saveScrollPosition = () => {
         scrollPositionRef.current = window.scrollY;
     };
 
-    // Восстановление позиции после обновления карточек
     useEffect(() => {
         if (cards.length > 0 && scrollPositionRef.current > 0) {
             // Небольшая задержка для гарантии, что DOM обновился

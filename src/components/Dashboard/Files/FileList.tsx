@@ -210,7 +210,6 @@ export const FileList: React.FC<FileListProps> = ({
                 onPageChange={handlePageChange}
             />
 
-            {/* Модальное окно для подтверждения удаления файла */}
             <div className={`modal ${deleteModalOpen ? 'show' : ''}`} style={{ display: deleteModalOpen ? 'flex' : 'none' }}>
                 <div className="modal-content">
                     <div className="modal-header">

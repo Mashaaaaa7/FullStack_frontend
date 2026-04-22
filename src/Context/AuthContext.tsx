@@ -18,7 +18,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user, setUser] = useState<CurrentUser | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Восстанавливаем сессию при старте
     useEffect(() => {
         const token = localStorage.getItem('access_token');
         if (token) {
@@ -45,7 +44,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
             await api.post('/api/auth/logout');
         } catch {
-            // игнорируем
         }
     };
 
@@ -59,12 +57,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 };
 
-// Единственный хук для всего приложения
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) throw new Error("useAuth must be used within AuthProvider");
     return context;
 };
 
-// Алиас для обратной совместимости — компоненты с useUser() не ломаются
 export const useUser = useAuth;

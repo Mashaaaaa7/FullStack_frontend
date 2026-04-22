@@ -34,16 +34,22 @@ export interface ActionHistory {
     details?: string;
 }
 
-export interface GetMe {
-    id: number;
-    email: string;
-    role: 'user' | 'admin';
-    token: string;
+export interface Definition {
+    partOfSpeech: string;
+    definition: string;
+    example?: string;
 }
 
-export type Role = "user" | "admin";
+export interface DictionaryData {
+    word: string;
+    phonetic: string | null;
+    definitions: Definition[];
+}
+
+export type Role = 'user' | 'admin';
+
 export interface CurrentUser {
     user_id: number;
     email: string;
-    role: "user" | "admin";
+    role: Role;
 }

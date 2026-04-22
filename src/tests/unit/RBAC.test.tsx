@@ -1,9 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, it, beforeEach, vi } from 'vitest';
 import { DashboardApp } from '../../components/Dashboard/DashboardApp.tsx';
-import { AuthProvider } from '../../Context/AuthContext.tsx';
 import { authApi } from '../../api/api';
+import {renderWithRouterAndAuth} from "../test-utils.tsx";
 
 vi.mock('../../api/api', () => ({
     authApi: {
@@ -19,14 +18,7 @@ vi.mock('../../api/api', () => ({
     default: { post: vi.fn(), get: vi.fn() },
 }));
 
-const renderApp = () =>
-    render(
-        <MemoryRouter>
-            <AuthProvider>
-                <DashboardApp />
-            </AuthProvider>
-        </MemoryRouter>
-    );
+const renderApp = () => renderWithRouterAndAuth(<DashboardApp />);
 
 describe('RBAC', () => {
     beforeEach(() => {
@@ -36,8 +28,11 @@ describe('RBAC', () => {
 
     it('user видит свою роль в интерфейсе', async () => {
         vi.mocked(authApi.getMe).mockResolvedValue({
-            user_id: 1, email: 'user@test.com', role: 'user',
+            user_id: 1,
+            email: 'user@test.com',
+            role: 'user',
         });
+
         localStorage.setItem('access_token', 'mock-token');
         renderApp();
 
@@ -48,8 +43,11 @@ describe('RBAC', () => {
 
     it('admin видит свою роль в интерфейсе', async () => {
         vi.mocked(authApi.getMe).mockResolvedValue({
-            user_id: 2, email: 'admin@test.com', role: 'admin',
+            user_id: 2,
+            email: 'admin@test.com',
+            role: 'admin',
         });
+
         localStorage.setItem('access_token', 'mock-token');
         renderApp();
 

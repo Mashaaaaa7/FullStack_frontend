@@ -183,8 +183,6 @@ export const Profile: React.FC = () => {
                 <section className="profile-info">
                     <h2>Личная информация</h2>
                     <div className="info-grid">
-
-                        {/* Email */}
                         <div className="info-item">
                             <label>Email:</label>
                             <div className="info-display">
@@ -292,8 +290,6 @@ export const Profile: React.FC = () => {
                         )}
                     </div>
                 </section>
-
-                {/* Файлы */}
                 <section className="profile-files">
                     <h2>📁 Мои файлы {!filesLoading && `(${files.length})`}</h2>
                     {filesLoading && <p>Загрузка...</p>}

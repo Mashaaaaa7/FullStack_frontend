@@ -1,4 +1,3 @@
-/* Контейнер списка файлов */
 .files-container {
     width: 100%;
 }
@@ -48,7 +47,6 @@
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-/* Сетка карточек файлов */
 .file-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -56,8 +54,6 @@
     margin: 2rem 0;
 }
 
-
-/* Карточка файла */
 .file-card {
     background: linear-gradient(135deg, #f8f9ff 0%, #f0f1f7 100%);
     border: 1px solid #e0e0e0;
@@ -108,7 +104,6 @@
     margin: 0;
 }
 
-/* ===== Статусный бейдж ===== */
 .status-badge {
     display: inline-block;
     margin-top: 0.5rem;
@@ -121,8 +116,6 @@
     width: fit-content;
 }
 
-
-/* Действия с файлом (кнопки) */
 .file-actions {
     display: flex;
     gap: 0.5rem;

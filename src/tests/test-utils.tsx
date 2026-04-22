@@ -1,11 +1,11 @@
-import React from "react";
-import { render } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { AuthProvider } from "../Context/AuthContext";
+import React from 'react';
+import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { AuthProvider } from '../Context/AuthContext';
 
-export const renderWithRouterAndAuth = (ui: React.ReactNode) =>
+export const renderWithRouterAndAuth = (ui: React.ReactElement) =>
     render(
-        <BrowserRouter>
+        <MemoryRouter>
             <AuthProvider>{ui}</AuthProvider>
-        </BrowserRouter>
+        </MemoryRouter>
     );

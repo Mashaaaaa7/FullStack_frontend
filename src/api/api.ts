@@ -1,5 +1,10 @@
 import axios from 'axios';
-import { UploadResponse, ActionHistory } from '../types';
+import {
+    UploadResponse,
+    ActionHistory,
+    DictionaryData,
+    CurrentUser, Role,
+} from '../types';
 
 const API_BASE = 'http://127.0.0.1:8000/api';
 
@@ -17,7 +22,6 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Перехватчик ответов: обработка 401
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -50,8 +54,11 @@ export const authApi = {
     login: (email: string, password: string) =>
         api.post('/auth/login', { email, password }).then(res => res.data),
 
-    getMe: () =>
-        api.get('/profile/me').then(res => res.data),
+    getMe: (): Promise<CurrentUser> =>
+        api.get<CurrentUser>('/profile/me').then(res => res.data),
+
+    updateUserRole: (userId: number, role: Role) =>
+        api.put(`/admin/users/${userId}/role`, { role }).then(res => res.data),
 
     logout: () =>
         api.post('/auth/logout').then(res => res.data),
@@ -111,7 +118,7 @@ export const adminApi = {
 };
 
 export const dictionaryApi = {
-    getDefinition: (word: string) =>
+    getDefinition: (word: string): Promise<DictionaryData> =>
         api.get(`/dictionary?word=${encodeURIComponent(word)}`).then(res => res.data),
 };
 

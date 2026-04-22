@@ -19,7 +19,6 @@ const AdminPanel: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [total, setTotal] = useState(0);
 
-    // Параметры из URL
     const page = Number(searchParams.get("page")) || 1;
     const limit = Number(searchParams.get("limit")) || 10;
     const search = searchParams.get("search") || "";

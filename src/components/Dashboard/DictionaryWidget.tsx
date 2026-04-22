@@ -1,16 +1,6 @@
 import { useState } from 'react';
-
-interface Definition {
-    partOfSpeech: string;
-    definition: string;
-    example?: string;
-}
-
-interface DictionaryData {
-    word: string;
-    phonetic: string | null;
-    definitions: Definition[];
-}
+import { dictionaryApi } from '../../api/api';
+import type { DictionaryData } from '../../types';
 
 export default function DictionaryWidget() {
     const [word, setWord] = useState('');
@@ -27,17 +17,15 @@ export default function DictionaryWidget() {
         setResult(null);
 
         try {
-            const response = await fetch(`/api/dictionary?word=${encodeURIComponent(word)}`);
-            if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error('Word not found');
-                }
-                throw new Error('Failed to fetch');
-            }
-            const data = await response.json();
+            const data = await dictionaryApi.getDefinition(word.trim());
             setResult(data);
         } catch (err: any) {
-            setError(err.message === 'Word not found' ? 'Слово не найдено' : 'Не удалось загрузить определение');
+            const message = err?.message ?? '';
+            setError(
+                message.includes('404') || message.includes('not found')
+                    ? 'Слово не найдено'
+                    : 'Не удалось загрузить определение'
+            );
         } finally {
             setLoading(false);
         }
@@ -46,6 +34,7 @@ export default function DictionaryWidget() {
     return (
         <div className="dictionary-widget">
             <h3>📖 Словарь английского</h3>
+
             <form onSubmit={handleSearch}>
                 <input
                     type="text"
@@ -64,15 +53,26 @@ export default function DictionaryWidget() {
             {result && !error && (
                 <div className="result">
                     <h4>
-                        {result.word} {result.phonetic && <span className="phonetic">/{result.phonetic}/</span>}
+                        {result.word}{' '}
+                        {result.phonetic && (
+                            <span className="phonetic">/{result.phonetic}/</span>
+                        )}
                     </h4>
-                    {result.definitions.map((def, idx) => (
-                        <div key={idx} className="definition">
-                            <strong>{def.partOfSpeech}</strong>: {def.definition}
-                            {def.example && <div className="example">Пример: "{def.example}"</div>}
-                        </div>
-                    ))}
-                    {result.definitions.length === 0 && <p>Определения не найдены.</p>}
+
+                    {result.definitions.length === 0 ? (
+                        <p>Определения не найдены.</p>
+                    ) : (
+                        result.definitions.map((def, idx) => (
+                            <div key={idx} className="definition">
+                                <strong>{def.partOfSpeech}</strong>: {def.definition}
+                                {def.example && (
+                                    <div className="example">
+                                        Пример: "{def.example}"
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
                 </div>
             )}
         </div>

@@ -17,7 +17,6 @@ export const Pagination: React.FC<PaginationProps> = ({
     const totalPages = Math.ceil(total / limit);
     if (totalPages <= 1) return null;
 
-    // Функция для создания массива страниц (можно улучшить)
     const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
     return (
