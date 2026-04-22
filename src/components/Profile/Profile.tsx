@@ -180,8 +180,6 @@ export const Profile: React.FC = () => {
             )}
 
             <div className="profile-content">
-
-                {/* Личная информация */}
                 <section className="profile-info">
                     <h2>Личная информация</h2>
                     <div className="info-grid">
@@ -235,7 +233,6 @@ export const Profile: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Пароль */}
                         <div className="info-item">
                             <label>Пароль:</label>
                             <div className="info-display">
@@ -322,25 +319,28 @@ export const Profile: React.FC = () => {
                     )}
                 </section>
 
-                {/* История действий */}
                 <section className="profile-history">
                     <h2>📊 История действий {!historyLoading && `(${actionHistory.length})`}</h2>
                     {historyLoading && <p>Загрузка...</p>}
                     {!historyLoading && (
                         <div className="history-list">
-                            {actionHistory.length === 0
-                                ? <p className="empty">История пуста</p>
-                                : actionHistory.map((item, i) => (
-                                    <div key={i} className="history-item">
-                                        <span>{item.action}</span>
-                                        <span>{formatDate(item.created_at)}</span>
+                            {actionHistory.length === 0 ? (
+                                <p className="empty">История пуста</p>
+                            ) : (
+                                actionHistory.map((item, i) => (
+                                    <div key={i} className="history-card">
+                                        <div className="history-header">
+                                            <span className="history-action">{item.action}</span>
+                                        </div>
+                                        <div className="history-details">
+                                            <span>Дата: {formatDate(item.created_at)}</span>
+                                        </div>
                                     </div>
                                 ))
-                            }
+                            )}
                         </div>
                     )}
                 </section>
-
             </div>
         </div>
     );
