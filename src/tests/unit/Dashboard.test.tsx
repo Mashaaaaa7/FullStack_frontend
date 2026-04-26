@@ -1,39 +1,49 @@
-import { screen, waitFor } from '@testing-library/react';
-import { describe, it, beforeEach, vi } from 'vitest';
-import { DashboardApp } from '../../components/Dashboard/DashboardApp.tsx';
-import { authApi } from '../../api/api';
-import {renderWithRouterAndAuth} from "../test-utils.tsx";
+import { screen, waitFor } from "@testing-library/react";
+import { describe, it, beforeEach, vi } from "vitest";
+import { DashboardApp } from "../../components/Dashboard/DashboardApp.tsx";
+import { authApi, pdfApi } from "../../api/api";
+import { renderWithRouterAndAuth } from "../test-utils.tsx";
 
-vi.mock('../../api/api', () => ({
-    authApi: {
-        getMe: vi.fn(),
-        login: vi.fn(),
-        logout: vi.fn(),
-    },
-    pdfApi: {
-        listPDFs: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-        getHistory: vi.fn().mockResolvedValue({ history: [], total: 0 }),
-        getCards: vi.fn().mockResolvedValue({ cards: [], total: 0 }),
-    },
-    default: { post: vi.fn(), get: vi.fn() },
-}));
+vi.mock("../../api/api", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../api/api")>();
+
+    return {
+        ...actual,
+        authApi: {
+            ...actual.authApi,
+            getMe: vi.fn(),
+            login: vi.fn(),
+            logout: vi.fn(),
+        },
+        pdfApi: {
+            ...actual.pdfApi,
+            listPDFs: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+            getHistory: vi.fn().mockResolvedValue({ history: [], total: 0 }),
+            getCards: vi.fn().mockResolvedValue({ cards: [], total: 0 }),
+            getFiles: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+            processCards: vi.fn(),
+        },
+    };
+});
 
 const renderDashboard = () => renderWithRouterAndAuth(<DashboardApp />);
 
-describe('Dashboard', () => {
+describe("Dashboard", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
     });
 
-    it('отображает email и роль пользователя user', async () => {
+    it("отображает email и роль пользователя user", async () => {
         vi.mocked(authApi.getMe).mockResolvedValue({
             user_id: 1,
-            email: 'user@test.com',
-            role: 'user',
+            email: "user@test.com",
+            role: "user",
         });
 
-        localStorage.setItem('access_token', 'mock-token');
+        vi.mocked(pdfApi.listPDFs).mockResolvedValue({ items: [], total: 0 });
+
+        localStorage.setItem("access_token", "mock-token");
         renderDashboard();
 
         await waitFor(() => {
@@ -42,14 +52,16 @@ describe('Dashboard', () => {
         });
     });
 
-    it('отображает email и роль пользователя admin', async () => {
+    it("отображает email и роль пользователя admin", async () => {
         vi.mocked(authApi.getMe).mockResolvedValue({
             user_id: 2,
-            email: 'admin@test.com',
-            role: 'admin',
+            email: "admin@test.com",
+            role: "admin",
         });
 
-        localStorage.setItem('access_token', 'mock-token');
+        vi.mocked(pdfApi.listPDFs).mockResolvedValue({ items: [], total: 0 });
+
+        localStorage.setItem("access_token", "mock-token");
         renderDashboard();
 
         await waitFor(() => {
