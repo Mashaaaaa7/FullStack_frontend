@@ -45,7 +45,6 @@ const AdminPanel: React.FC = () => {
             if (roleFilter) params.role = roleFilter;
 
             const data = await adminApi.listUsers(params);
-            // data = { success, total, page, limit, items }
             const usersList: UserItem[] = (data.items || []).map((u: any) => ({
                 id: Number(u.user_id),
                 email: u.email,
@@ -65,7 +64,7 @@ const AdminPanel: React.FC = () => {
 
         try {
             await adminApi.updateUserRole(targetUserId, newRole);
-            await fetchUsers(); // перезагружаем список с текущими фильтрами
+            await fetchUsers();
         } catch (err: any) {
             setError(err.message || "Не удалось изменить роль");
         }
@@ -156,8 +155,6 @@ const AdminPanel: React.FC = () => {
                     </select>
                 </div>
             </div>
-
-            {/* Таблица */}
             <div className="table-wrapper">
                 <table className="admin-table">
                     <thead>
@@ -208,8 +205,6 @@ const AdminPanel: React.FC = () => {
                     </tbody>
                 </table>
             </div>
-
-            {/* Пагинация */}
             {totalPages > 1 && (
                 <div className="pagination">
                     <button

@@ -33,16 +33,15 @@ export const DashboardApp: React.FC = () => {
 
     useEffect(() => {
         if (cards.length > 0 && scrollPositionRef.current > 0) {
-            // Небольшая задержка для гарантии, что DOM обновился
             requestAnimationFrame(() => {
                 window.scrollTo(0, scrollPositionRef.current);
-                scrollPositionRef.current = 0; // сброс после восстановления
+                scrollPositionRef.current = 0;
             });
         }
     }, [cards]);
 
     const loadPage = async (fileId: number, page: number) => {
-        saveScrollPosition(); // сохраняем позицию перед загрузкой
+        saveScrollPosition();
         try {
             setLoading(true);
             const skip = (page - 1) * cardsPerPage;
@@ -128,7 +127,7 @@ export const DashboardApp: React.FC = () => {
     };
 
     const handleViewCards = (file: FileItem) => {
-        saveScrollPosition(); // сохраняем позицию
+        saveScrollPosition();
         setSelectedDeck({ id: file.id, name: file.file_name } as DeckWithId);
         setSelectedFileId(file.id);
         setCurrentPage(1);
