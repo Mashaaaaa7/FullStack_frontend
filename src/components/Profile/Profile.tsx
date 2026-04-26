@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../Context/AuthContext';
-import { ActionHistory } from '../../types';
-import { useNavigate } from 'react-router-dom';
-import './Profile.css';
-import { pdfApi, authApi } from '../../api/api';
-import { FileItem } from '../Dashboard/Files/FileList';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../Context/AuthContext";
+import type { ActionHistory } from "../../types";
+import { authApi, getErrorMessage, pdfApi } from "../../api/api";
+import type { FileItem } from "../Dashboard/Files/FileList";
+import "./Profile.css";
 
 interface ChangePasswordForm {
     current_password: string;
@@ -26,43 +26,53 @@ export const Profile: React.FC = () => {
 
     const [files, setFiles] = useState<FileItem[]>([]);
     const [filesLoading, setFilesLoading] = useState(false);
-    const [filesError, setFilesError] = useState('');
+    const [filesError, setFilesError] = useState("");
 
-    const [message, setMessage] = useState('');
-    const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState<"success" | "error">("success");
 
     const [showPasswordForm, setShowPasswordForm] = useState(false);
     const [passwordForm, setPasswordForm] = useState<ChangePasswordForm>({
-        current_password: '',
-        new_password: '',
-        confirm_password: '',
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
     });
     const [passwordErrors, setPasswordErrors] = useState<Partial<ChangePasswordForm>>({});
     const [passwordLoading, setPasswordLoading] = useState(false);
 
     const [showEmailForm, setShowEmailForm] = useState(false);
     const [emailForm, setEmailForm] = useState<ChangeEmailForm>({
-        new_email: '',
-        password: '',
+        new_email: "",
+        password: "",
     });
     const [emailErrors, setEmailErrors] = useState<Partial<ChangeEmailForm>>({});
     const [emailLoading, setEmailLoading] = useState(false);
 
     useEffect(() => {
         if (!user?.user_id) return;
-        loadHistory();
-        loadUserFiles();
+
+        void loadHistory();
+        void loadUserFiles();
     }, [user?.user_id]);
+
+    const showMessage = (text: string, type: "success" | "error") => {
+        setMessage(text);
+        setMessageType(type);
+    };
 
     const loadHistory = async () => {
         setHistoryLoading(true);
+
         try {
             const res = await pdfApi.getHistory();
+
             if (res.success && Array.isArray(res.history)) {
                 setActionHistory(res.history);
+            } else {
+                setActionHistory([]);
             }
         } catch {
-            showMessage('⚠️ Ошибка загрузки истории', 'error');
+            showMessage("⚠️ Ошибка загрузки истории", "error");
         } finally {
             setHistoryLoading(false);
         }
@@ -70,92 +80,138 @@ export const Profile: React.FC = () => {
 
     const loadUserFiles = async () => {
         setFilesLoading(true);
-        setFilesError('');
+        setFilesError("");
+
         try {
             const res = await pdfApi.listPDFs();
-            if (res.success && Array.isArray(res.items)) {
+
+            if (Array.isArray(res.items)) {
                 setFiles(res.items);
+            } else {
+                setFiles([]);
             }
         } catch {
-            setFilesError('Не удалось загрузить файлы');
+            setFilesError("Не удалось загрузить файлы");
         } finally {
             setFilesLoading(false);
         }
     };
 
-    const showMessage = (text: string, type: 'success' | 'error') => {
-        setMessage(text);
-        setMessageType(type);
-    };
-
     const validatePasswordForm = (): boolean => {
         const errors: Partial<ChangePasswordForm> = {};
-        if (!passwordForm.current_password)
-            errors.current_password = 'Введите текущий пароль';
-        if (!passwordForm.new_password)
-            errors.new_password = 'Введите новый пароль';
-        else if (passwordForm.new_password.length < 8)
-            errors.new_password = 'Пароль должен быть минимум 8 символов';
-        else if (passwordForm.new_password.length > 100)
-            errors.new_password = 'Пароль слишком длинный';
-        if (!passwordForm.confirm_password)
-            errors.confirm_password = 'Подтвердите пароль';
-        else if (passwordForm.new_password !== passwordForm.confirm_password)
-            errors.confirm_password = 'Пароли не совпадают';
+
+        if (!passwordForm.current_password) {
+            errors.current_password = "Введите текущий пароль";
+        }
+
+        if (!passwordForm.new_password) {
+            errors.new_password = "Введите новый пароль";
+        } else if (passwordForm.new_password.length < 8) {
+            errors.new_password = "Пароль должен быть минимум 8 символов";
+        } else if (passwordForm.new_password.length > 100) {
+            errors.new_password = "Пароль слишком длинный";
+        }
+
+        if (!passwordForm.confirm_password) {
+            errors.confirm_password = "Подтвердите пароль";
+        } else if (passwordForm.new_password !== passwordForm.confirm_password) {
+            errors.confirm_password = "Пароли не совпадают";
+        }
+
         setPasswordErrors(errors);
         return Object.keys(errors).length === 0;
-    };
-
-    const handleChangePassword = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validatePasswordForm()) return;
-        setPasswordLoading(true);
-        try {
-            await authApi.changePassword(passwordForm);
-            showMessage('✅ Пароль успешно изменён. Пожалуйста, войдите снова.', 'success');
-            setTimeout(() => { logout(); navigate('/login'); }, 1500);
-        } catch (err: any) {
-            showMessage(`❌ ${err?.message ?? 'Ошибка при смене пароля'}`, 'error');
-        } finally {
-            setPasswordLoading(false);
-        }
     };
 
     const validateEmailForm = (): boolean => {
         const errors: Partial<ChangeEmailForm> = {};
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailForm.new_email)
-            errors.new_email = 'Введите новый email';
-        else if (!emailRegex.test(emailForm.new_email))
-            errors.new_email = 'Некорректный email';
-        else if (emailForm.new_email === user?.email)
-            errors.new_email = 'Email совпадает с текущим';
-        if (!emailForm.password)
-            errors.password = 'Введите пароль для подтверждения';
+
+        if (!emailForm.new_email) {
+            errors.new_email = "Введите новый email";
+        } else if (!emailRegex.test(emailForm.new_email)) {
+            errors.new_email = "Некорректный email";
+        } else if (emailForm.new_email === user?.email) {
+            errors.new_email = "Email совпадает с текущим";
+        }
+
+        if (!emailForm.password) {
+            errors.password = "Введите пароль для подтверждения";
+        }
+
         setEmailErrors(errors);
         return Object.keys(errors).length === 0;
     };
 
-    const handleChangeEmail = async (e: React.FormEvent) => {
+    const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        if (!validatePasswordForm()) return;
+
+        setPasswordLoading(true);
+
+        try {
+            await authApi.changePassword(passwordForm);
+            showMessage("✅ Пароль успешно изменён. Пожалуйста, войдите снова.", "success");
+
+            setTimeout(() => {
+                logout();
+                navigate("/login");
+            }, 1500);
+        } catch (err: unknown) {
+            showMessage(`❌ ${getErrorMessage(err) || "Ошибка при смене пароля"}`, "error");
+        } finally {
+            setPasswordLoading(false);
+        }
+    };
+
+    const handleChangeEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
         if (!validateEmailForm()) return;
+
         setEmailLoading(true);
+
         try {
             await authApi.changeEmail(emailForm);
-            showMessage('✅ Email успешно изменён. Пожалуйста, войдите снова.', 'success');
-            setTimeout(() => { logout(); navigate('/login'); }, 1500);
-        } catch (err: any) {
-            showMessage(`❌ ${err?.message ?? 'Ошибка при смене email'}`, 'error');
+            showMessage("✅ Email успешно изменён. Пожалуйста, войдите снова.", "success");
+
+            setTimeout(() => {
+                logout();
+                navigate("/login");
+            }, 1500);
+        } catch (err: unknown) {
+            showMessage(`❌ ${getErrorMessage(err) || "Ошибка при смене email"}`, "error");
         } finally {
             setEmailLoading(false);
         }
     };
 
-    const formatDate = (dateString: string | null | undefined) => {
-        if (!dateString) return '—';
+    const formatDate = (dateString: string | null | undefined): string => {
+        if (!dateString) return "—";
+
         const date = new Date(dateString);
-        if (isNaN(date.getTime()) || date.getFullYear() < 2000) return '—';
-        return date.toLocaleString('ru-RU');
+
+        if (Number.isNaN(date.getTime()) || date.getFullYear() < 2000) {
+            return "—";
+        }
+
+        return date.toLocaleString("ru-RU");
+    };
+
+    const resetEmailForm = () => {
+        setShowEmailForm(false);
+        setEmailForm({ new_email: "", password: "" });
+        setEmailErrors({});
+    };
+
+    const resetPasswordForm = () => {
+        setShowPasswordForm(false);
+        setPasswordForm({
+            current_password: "",
+            new_password: "",
+            confirm_password: "",
+        });
+        setPasswordErrors({});
     };
 
     if (!user) {
@@ -175,13 +231,16 @@ export const Profile: React.FC = () => {
             {message && (
                 <div className={`message ${messageType}`}>
                     {message}
-                    <button className="message-close" onClick={() => setMessage('')}>✕</button>
+                    <button className="message-close" type="button" onClick={() => setMessage("")}>
+                        ✕
+                    </button>
                 </div>
             )}
 
             <div className="profile-content">
                 <section className="profile-info">
                     <h2>Личная информация</h2>
+
                     <div className="info-grid">
                         <div className="info-item">
                             <label>Email:</label>
@@ -189,43 +248,66 @@ export const Profile: React.FC = () => {
                                 <span>{user.email}</span>
                                 <button
                                     className="edit-btn"
-                                    onClick={() => setShowEmailForm(v => !v)}
+                                    type="button"
+                                    onClick={() => setShowEmailForm((prev) => !prev)}
                                     title="Изменить email"
-                                >✏️</button>
+                                >
+                                    ✏️
+                                </button>
                             </div>
                         </div>
 
                         {showEmailForm && (
                             <div className="edit-form email-form">
                                 <h3>Изменить Email</h3>
+
                                 <form onSubmit={handleChangeEmail}>
                                     <div className="form-group">
                                         <label htmlFor="new-email">Новый Email:</label>
                                         <input
-                                            id="new-email" type="email" className="form-input"
-                                            value={emailForm.new_email} placeholder="example@domain.com"
-                                            onChange={e => setEmailForm(f => ({ ...f, new_email: e.target.value }))}
+                                            id="new-email"
+                                            type="email"
+                                            className="form-input"
+                                            value={emailForm.new_email}
+                                            placeholder="example@domain.com"
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                                setEmailForm((prev) => ({ ...prev, new_email: e.target.value }))
+                                            }
                                         />
-                                        {emailErrors.new_email && <span className="error-text">{emailErrors.new_email}</span>}
+                                        {emailErrors.new_email && (
+                                            <span className="error-text">{emailErrors.new_email}</span>
+                                        )}
                                     </div>
+
                                     <div className="form-group">
                                         <label htmlFor="email-password">Пароль (для подтверждения):</label>
                                         <input
-                                            id="email-password" type="password" className="form-input"
-                                            value={emailForm.password} placeholder="Введите пароль"
-                                            onChange={e => setEmailForm(f => ({ ...f, password: e.target.value }))}
+                                            id="email-password"
+                                            type="password"
+                                            className="form-input"
+                                            value={emailForm.password}
+                                            placeholder="Введите пароль"
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                                setEmailForm((prev) => ({ ...prev, password: e.target.value }))
+                                            }
                                         />
-                                        {emailErrors.password && <span className="error-text">{emailErrors.password}</span>}
+                                        {emailErrors.password && (
+                                            <span className="error-text">{emailErrors.password}</span>
+                                        )}
                                     </div>
+
                                     <div className="form-actions">
                                         <button type="submit" className="btn-primary" disabled={emailLoading}>
-                                            {emailLoading ? 'Обновляю...' : 'Обновить Email'}
+                                            {emailLoading ? "Обновляю..." : "Обновить Email"}
                                         </button>
-                                        <button type="button" className="btn-secondary" onClick={() => {
-                                            setShowEmailForm(false);
-                                            setEmailForm({ new_email: '', password: '' });
-                                            setEmailErrors({});
-                                        }}>Отмена</button>
+
+                                        <button
+                                            type="button"
+                                            className="btn-secondary"
+                                            onClick={resetEmailForm}
+                                        >
+                                            Отмена
+                                        </button>
                                     </div>
                                 </form>
                             </div>
@@ -237,68 +319,114 @@ export const Profile: React.FC = () => {
                                 <span>••••••••</span>
                                 <button
                                     className="edit-btn"
-                                    onClick={() => setShowPasswordForm(v => !v)}
+                                    type="button"
+                                    onClick={() => setShowPasswordForm((prev) => !prev)}
                                     title="Изменить пароль"
-                                >✏️</button>
+                                >
+                                    ✏️
+                                </button>
                             </div>
                         </div>
 
                         {showPasswordForm && (
                             <div className="edit-form password-form">
                                 <h3>Изменить Пароль</h3>
+
                                 <form onSubmit={handleChangePassword}>
                                     <div className="form-group">
                                         <label htmlFor="current-password">Текущий пароль:</label>
                                         <input
-                                            id="current-password" type="password" className="form-input"
-                                            value={passwordForm.current_password} placeholder="Введите текущий пароль"
-                                            onChange={e => setPasswordForm(f => ({ ...f, current_password: e.target.value }))}
+                                            id="current-password"
+                                            type="password"
+                                            className="form-input"
+                                            value={passwordForm.current_password}
+                                            placeholder="Введите текущий пароль"
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                                setPasswordForm((prev) => ({
+                                                    ...prev,
+                                                    current_password: e.target.value,
+                                                }))
+                                            }
                                         />
-                                        {passwordErrors.current_password && <span className="error-text">{passwordErrors.current_password}</span>}
+                                        {passwordErrors.current_password && (
+                                            <span className="error-text">{passwordErrors.current_password}</span>
+                                        )}
                                     </div>
+
                                     <div className="form-group">
                                         <label htmlFor="new-password">Новый пароль:</label>
                                         <input
-                                            id="new-password" type="password" className="form-input"
-                                            value={passwordForm.new_password} placeholder="Минимум 8 символов"
-                                            onChange={e => setPasswordForm(f => ({ ...f, new_password: e.target.value }))}
+                                            id="new-password"
+                                            type="password"
+                                            className="form-input"
+                                            value={passwordForm.new_password}
+                                            placeholder="Минимум 8 символов"
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                                setPasswordForm((prev) => ({
+                                                    ...prev,
+                                                    new_password: e.target.value,
+                                                }))
+                                            }
                                         />
-                                        {passwordErrors.new_password && <span className="error-text">{passwordErrors.new_password}</span>}
-                                        <div className="password-hints"><small>✓ Минимум 8 символов</small></div>
+                                        {passwordErrors.new_password && (
+                                            <span className="error-text">{passwordErrors.new_password}</span>
+                                        )}
+                                        <div className="password-hints">
+                                            <small>✓ Минимум 8 символов</small>
+                                        </div>
                                     </div>
+
                                     <div className="form-group">
                                         <label htmlFor="confirm-password">Подтверждение пароля:</label>
                                         <input
-                                            id="confirm-password" type="password" className="form-input"
-                                            value={passwordForm.confirm_password} placeholder="Повторите пароль"
-                                            onChange={e => setPasswordForm(f => ({ ...f, confirm_password: e.target.value }))}
+                                            id="confirm-password"
+                                            type="password"
+                                            className="form-input"
+                                            value={passwordForm.confirm_password}
+                                            placeholder="Повторите пароль"
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                                setPasswordForm((prev) => ({
+                                                    ...prev,
+                                                    confirm_password: e.target.value,
+                                                }))
+                                            }
                                         />
-                                        {passwordErrors.confirm_password && <span className="error-text">{passwordErrors.confirm_password}</span>}
+                                        {passwordErrors.confirm_password && (
+                                            <span className="error-text">{passwordErrors.confirm_password}</span>
+                                        )}
                                     </div>
+
                                     <div className="form-actions">
                                         <button type="submit" className="btn-primary" disabled={passwordLoading}>
-                                            {passwordLoading ? 'Обновляю...' : 'Обновить Пароль'}
+                                            {passwordLoading ? "Обновляю..." : "Обновить Пароль"}
                                         </button>
-                                        <button type="button" className="btn-secondary" onClick={() => {
-                                            setShowPasswordForm(false);
-                                            setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
-                                            setPasswordErrors({});
-                                        }}>Отмена</button>
+
+                                        <button
+                                            type="button"
+                                            className="btn-secondary"
+                                            onClick={resetPasswordForm}
+                                        >
+                                            Отмена
+                                        </button>
                                     </div>
                                 </form>
                             </div>
                         )}
                     </div>
                 </section>
+
                 <section className="profile-files">
                     <h2>📁 Мои файлы {!filesLoading && `(${files.length})`}</h2>
+
                     {filesLoading && <p>Загрузка...</p>}
                     {filesError && <p className="error">{filesError}</p>}
+
                     {!filesLoading && (
                         <div className="files-list">
-                            {files.length === 0
-                                ? <p className="empty">Файлов пока нет</p>
-                                : files.map(file => (
+                            {files.length === 0 ? (
+                                <p className="empty">Файлов пока нет</p>
+                            ) : (
+                                files.map((file) => (
                                     <div key={file.id} className="file-item">
                                         <div className="file-header">
                                             <span className="file-name">{file.file_name}</span>
@@ -310,21 +438,23 @@ export const Profile: React.FC = () => {
                                         </div>
                                     </div>
                                 ))
-                            }
+                            )}
                         </div>
                     )}
                 </section>
 
                 <section className="profile-history">
                     <h2>📊 История действий {!historyLoading && `(${actionHistory.length})`}</h2>
+
                     {historyLoading && <p>Загрузка...</p>}
+
                     {!historyLoading && (
                         <div className="history-list">
                             {actionHistory.length === 0 ? (
                                 <p className="empty">История пуста</p>
                             ) : (
-                                actionHistory.map((item, i) => (
-                                    <div key={i} className="history-card">
+                                actionHistory.map((item, index) => (
+                                    <div key={index} className="history-card">
                                         <div className="history-header">
                                             <span className="history-action">{item.action}</span>
                                         </div>

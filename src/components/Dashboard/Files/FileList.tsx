@@ -1,20 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import api, { getErrorMessage } from "../../../api/api.ts";
 import { useDebounce } from "../../../hooks/useDebounce.ts";
-import api, { pdfApi } from "../../../api/api.ts";
 import { FileCard } from "./FileCard.tsx";
 import { Pagination } from "./Pagination.tsx";
-import toast from 'react-hot-toast';
-import './Files.css';
+import "./Files.css";
 
 export interface FileItem {
     id: number;
     file_name: string;
     size: number;
-    status: 'uploaded' | 'processing' | 'processed' | 'failed';
+    status: "uploaded" | "processing" | "processed" | "failed";
     created_at: string;
     owner_id: number;
     owner_email?: string;
+}
+
+interface FileListResponse {
+    items: FileItem[];
+    total: number;
 }
 
 interface FileListProps {
@@ -31,33 +36,37 @@ export const FileList: React.FC<FileListProps> = ({
                                                       refreshTrigger,
                                                       onGenerateCards,
                                                       onViewCards,
-                                                      processingFileId
+                                                      processingFileId,
                                                   }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [files, setFiles] = useState<FileItem[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null);
 
-    const page = Number(searchParams.get('page')) || 1;
-    const limit = Number(searchParams.get('limit')) || 10;
-    const status = searchParams.get('status') || '';
-    const search = searchParams.get('search') || '';
-    const sort = searchParams.get('sort') || 'created_at_desc';
+    const page = Number(searchParams.get("page")) || 1;
+    const limit = Number(searchParams.get("limit")) || 10;
+    const status = searchParams.get("status") || "";
+    const search = searchParams.get("search") || "";
+    const sort = searchParams.get("sort") || "created_at_desc";
 
     const debouncedSearch = useDebounce(search, 500);
 
     const updateParams = (newParams: Record<string, string>) => {
-        setSearchParams({ ...Object.fromEntries(searchParams), ...newParams });
+        setSearchParams({
+            ...Object.fromEntries(searchParams.entries()),
+            ...newParams,
+        });
     };
 
     const fetchFiles = async () => {
         setLoading(true);
-        setError('');
+        setError("");
+
         try {
-            const response = await api.get('/pdf/list', {
+            const response = await api.get<FileListResponse>("/pdf/list", {
                 params: {
                     page,
                     limit,
@@ -66,21 +75,23 @@ export const FileList: React.FC<FileListProps> = ({
                     sort,
                 },
             });
+
             setFiles(response.data.items);
             setTotal(response.data.total);
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Ошибка загрузки');
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || "Ошибка загрузки");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchFiles();
+        void fetchFiles();
     }, [page, limit, status, debouncedSearch, sort, refreshTrigger]);
 
     const handleDeleteClick = (fileId: number) => {
-        const file = files.find(f => f.id === fileId);
+        const file = files.find((item) => item.id === fileId);
+
         if (file) {
             setFileToDelete(file);
             setDeleteModalOpen(true);
@@ -89,43 +100,42 @@ export const FileList: React.FC<FileListProps> = ({
 
     const confirmDelete = async () => {
         if (!fileToDelete) return;
+
         setDeleteModalOpen(false);
+
         try {
-            await pdfApi.deleteFile(fileToDelete.id);
+            await api.delete(`/pdf/${fileToDelete.id}`);
             await fetchFiles();
-            toast.success('Файл удалён');
-        } catch (err: any) {
-            const detail = err.response?.data?.detail || 'Ошибка удаления';
-            toast.error(detail);
+            toast.success("Файл удалён");
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err) || "Ошибка удаления");
         } finally {
             setFileToDelete(null);
         }
     };
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        updateParams({ search: e.target.value, page: '1' });
+        updateParams({ search: e.target.value, page: "1" });
     };
 
     const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        updateParams({ status: e.target.value, page: '1' });
+        updateParams({ status: e.target.value, page: "1" });
     };
 
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        updateParams({ sort: e.target.value, page: '1' });
+        updateParams({ sort: e.target.value, page: "1" });
     };
 
     const handleLimitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        updateParams({ limit: e.target.value, page: '1' });
+        updateParams({ limit: e.target.value, page: "1" });
     };
 
     const handlePageChange = (newPage: number) => {
         updateParams({ page: String(newPage) });
     };
 
-
     return (
         <div className="files-container">
-            {/* Форма фильтров */}
             <div className="filters-bar">
                 <div className="filter-group">
                     <label htmlFor="search">Поиск</label>
@@ -138,6 +148,7 @@ export const FileList: React.FC<FileListProps> = ({
                         onChange={handleSearchChange}
                     />
                 </div>
+
                 <div className="filter-group">
                     <label htmlFor="status">Статус</label>
                     <select
@@ -153,6 +164,7 @@ export const FileList: React.FC<FileListProps> = ({
                         <option value="failed">Ошибка</option>
                     </select>
                 </div>
+
                 <div className="filter-group">
                     <label htmlFor="sort">Сортировка</label>
                     <select
@@ -167,12 +179,13 @@ export const FileList: React.FC<FileListProps> = ({
                         <option value="name_desc">По имени (Я–А)</option>
                     </select>
                 </div>
+
                 <div className="filter-group">
                     <label htmlFor="limit">На странице</label>
                     <select
                         id="limit"
                         className="filter-select"
-                        value={limit}
+                        value={String(limit)}
                         onChange={handleLimitChange}
                     >
                         <option value="6">6</option>
@@ -184,12 +197,11 @@ export const FileList: React.FC<FileListProps> = ({
                 </div>
             </div>
 
-            {/* Список файлов */}
             {loading && <p>Загрузка...</p>}
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {error && <p style={{ color: "red" }}>{error}</p>}
 
             <div className="file-grid">
-                {files.map(file => (
+                {files.map((file) => (
                     <FileCard
                         key={file.id}
                         file={file}
@@ -202,7 +214,6 @@ export const FileList: React.FC<FileListProps> = ({
                 ))}
             </div>
 
-            {/* Пагинация */}
             <Pagination
                 page={page}
                 limit={limit}
@@ -210,15 +221,32 @@ export const FileList: React.FC<FileListProps> = ({
                 onPageChange={handlePageChange}
             />
 
-            <div className={`modal ${deleteModalOpen ? 'show' : ''}`} style={{ display: deleteModalOpen ? 'flex' : 'none' }}>
+            <div
+                className={`modal ${deleteModalOpen ? "show" : ""}`}
+                style={{ display: deleteModalOpen ? "flex" : "none" }}
+            >
                 <div className="modal-content">
                     <div className="modal-header">
                         <h3>Подтверждение удаления</h3>
-                        <button className="modal-close" onClick={() => setDeleteModalOpen(false)}>&times;</button>
+                        <button
+                            className="modal-close"
+                            type="button"
+                            onClick={() => setDeleteModalOpen(false)}
+                        >
+                            &times;
+                        </button>
                     </div>
+
                     <div className="modal-body">
                         <div className="modal-icon">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#dc3545" strokeWidth="1.5">
+                            <svg
+                                width="64"
+                                height="64"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#dc3545"
+                                strokeWidth="1.5"
+                            >
                                 <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
@@ -226,16 +254,32 @@ export const FileList: React.FC<FileListProps> = ({
                         <p className="modal-subtext">{fileToDelete?.file_name}</p>
                         <p className="modal-subtext">Это действие нельзя будет отменить.</p>
                     </div>
+
                     <div className="modal-footer">
-                        <button className="modal-btn modal-btn-cancel" onClick={() => setDeleteModalOpen(false)}>
+                        <button
+                            className="modal-btn modal-btn-cancel"
+                            type="button"
+                            onClick={() => setDeleteModalOpen(false)}
+                        >
                             Отмена
                         </button>
-                        <button className="modal-btn modal-btn-delete" onClick={confirmDelete}>
-                            <span className="delete-icon">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
-                                </svg>
-                            </span>
+                        <button
+                            className="modal-btn modal-btn-delete"
+                            type="button"
+                            onClick={() => void confirmDelete()}
+                        >
+              <span className="delete-icon">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                >
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+                </svg>
+              </span>
                             Удалить
                         </button>
                     </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
 import { useDebounce } from "../../hooks/useDebounce";
-import { adminApi } from "../../api/api";
+import { adminApi, getErrorMessage, AdminUsersParams, AdminUserDto } from "../../api/api";
 import "./AdminPanel.css";
 
 interface UserItem {
@@ -33,27 +33,34 @@ const AdminPanel: React.FC = () => {
 
     const fetchUsers = async () => {
         if (!user) return;
+
         setLoading(true);
         setError(null);
+
         try {
-            const params: Record<string, any> = {
+            const params: AdminUsersParams = {
                 page,
                 limit,
                 sort,
             };
+
             if (debouncedSearch) params.search = debouncedSearch;
-            if (roleFilter) params.role = roleFilter;
+            if (roleFilter === "user" || roleFilter === "admin") {
+                params.role = roleFilter;
+            }
 
             const data = await adminApi.listUsers(params);
-            const usersList: UserItem[] = (data.items || []).map((u: any) => ({
+
+            const usersList: UserItem[] = (data.items || []).map((u: AdminUserDto) => ({
                 id: Number(u.user_id),
                 email: u.email,
                 role: u.role,
             }));
+
             setUsers(usersList);
             setTotal(data.total || 0);
-        } catch (err: any) {
-            setError(err.message || "Не удалось загрузить пользователей");
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || "Не удалось загрузить пользователей");
         } finally {
             setLoading(false);
         }
@@ -65,13 +72,13 @@ const AdminPanel: React.FC = () => {
         try {
             await adminApi.updateUserRole(targetUserId, newRole);
             await fetchUsers();
-        } catch (err: any) {
-            setError(err.message || "Не удалось изменить роль");
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || "Не удалось изменить роль");
         }
     };
 
     useEffect(() => {
-        fetchUsers();
+        void fetchUsers();
     }, [page, limit, debouncedSearch, roleFilter, sort]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,24 +103,27 @@ const AdminPanel: React.FC = () => {
 
     const totalPages = Math.ceil(total / limit);
 
-    if (loading && users.length === 0) return (
-        <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>Загрузка пользователей...</p>
-        </div>
-    );
+    if (loading && users.length === 0) {
+        return (
+            <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Загрузка пользователей...</p>
+            </div>
+        );
+    }
 
-    if (error) return (
-        <div className="message-error">
-            <span>⚠️</span> {error}
-        </div>
-    );
+    if (error) {
+        return (
+            <div className="message-error">
+                <span>⚠️</span> {error}
+            </div>
+        );
+    }
 
     return (
         <div className="admin-container">
             <h1>Админ-панель</h1>
 
-            {/* Фильтры */}
             <div className="filters-bar">
                 <div className="filter-group">
                     <label>Поиск по email</label>
@@ -142,19 +152,19 @@ const AdminPanel: React.FC = () => {
                         <option value="email_desc">Email (Я–А)</option>
                         <option value="role_asc">Роль (сначала admin)</option>
                         <option value="role_desc">Роль (сначала user)</option>
-
                     </select>
                 </div>
 
                 <div className="filter-group">
                     <label>На странице</label>
-                    <select className="filter-select" value={limit} onChange={handleLimitChange}>
+                    <select className="filter-select" value={String(limit)} onChange={handleLimitChange}>
                         <option value="10">10</option>
                         <option value="20">20</option>
                         <option value="50">50</option>
                     </select>
                 </div>
             </div>
+
             <div className="table-wrapper">
                 <table className="admin-table">
                     <thead>
@@ -167,13 +177,14 @@ const AdminPanel: React.FC = () => {
                     <tbody>
                     {users.map((u) => {
                         const isSelf = u.id === user?.user_id;
+
                         return (
                             <tr key={u.id}>
                                 <td>{u.email}</td>
                                 <td>
-                                    <span className={`role-badge role-${u.role}`}>
-                                        {u.role === "admin" ? "Администратор" : "Пользователь"}
-                                    </span>
+                    <span className={`role-badge role-${u.role}`}>
+                      {u.role === "admin" ? "Администратор" : "Пользователь"}
+                    </span>
                                 </td>
                                 <td className="actions-cell">
                                     {isSelf ? (
@@ -183,7 +194,7 @@ const AdminPanel: React.FC = () => {
                                             {u.role !== "admin" && (
                                                 <button
                                                     className="action-button action-admin"
-                                                    onClick={() => updateRole(u.id, "admin")}
+                                                    onClick={() => void updateRole(u.id, "admin")}
                                                 >
                                                     <span>👑</span> Сделать админом
                                                 </button>
@@ -191,7 +202,7 @@ const AdminPanel: React.FC = () => {
                                             {u.role !== "user" && (
                                                 <button
                                                     className="action-button action-user"
-                                                    onClick={() => updateRole(u.id, "user")}
+                                                    onClick={() => void updateRole(u.id, "user")}
                                                 >
                                                     <span>👤</span> Сделать пользователем
                                                 </button>
@@ -205,6 +216,7 @@ const AdminPanel: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
             {totalPages > 1 && (
                 <div className="pagination">
                     <button
@@ -215,10 +227,10 @@ const AdminPanel: React.FC = () => {
                         ← Назад
                     </button>
                     <div className="pagination-pages">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                             <button
                                 key={p}
-                                className={`pagination-page ${page === p ? 'active' : ''}`}
+                                className={`pagination-page ${page === p ? "active" : ""}`}
                                 onClick={() => handlePageChange(p)}
                             >
                                 {p}

@@ -1,6 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
-import tseslint from "typescript-eslint";
+import tslint from "typescript-eslint";
 import type { Linter } from "eslint";
 
 const config: Linter.Config[] = [
@@ -8,7 +8,7 @@ const config: Linter.Config[] = [
         ignores: ["dist/**", "coverage/**", "node_modules/**"],
     },
     js.configs.recommended,
-    ...tseslint.configs.recommended,
+    ...tslint.configs.recommended,
     {
         files: ["**/*.{ts,tsx,js,jsx}"],
         languageOptions: {

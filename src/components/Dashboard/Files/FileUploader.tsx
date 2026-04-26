@@ -1,8 +1,8 @@
-import React, { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import React, { useCallback, useMemo, useState } from "react";
+import { useDropzone, type Accept } from "react-dropzone";
 import { useAuth } from "../../../Context/AuthContext.tsx";
-import { pdfApi } from "../../../api/api.ts";
-import '../../../App.css';
+import { getErrorMessage, pdfApi } from "../../../api/api.ts";
+import "../../../App.css";
 
 interface FileUploaderProps {
     onUploadSuccess?: () => void;
@@ -13,7 +13,7 @@ interface FileUploaderProps {
 const FileUploader: React.FC<FileUploaderProps> = ({
                                                        onUploadSuccess,
                                                        maxSizeMB = 10,
-                                                       allowedTypes = ['application/pdf'],
+                                                       allowedTypes = ["application/pdf"],
                                                    }) => {
     const { user, loading: authLoading } = useAuth();
     const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -22,25 +22,22 @@ const FileUploader: React.FC<FileUploaderProps> = ({
 
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
-    if (authLoading) {
-        return <div className="uploader-loading">Загрузка данных пользователя...</div>;
-    }
-
-    if (!user) {
-        return (
-            <div className="uploader-not-authorized">
-                Пожалуйста, <a href="/login">войдите в систему</a>, чтобы загружать файлы.
-            </div>
-        );
-    }
+    const accept = useMemo<Accept>(() => {
+        return allowedTypes.reduce<Accept>((acc, type) => {
+            acc[type] = [];
+            return acc;
+        }, {});
+    }, [allowedTypes]);
 
     const validateFile = (file: File): string | null => {
         if (!allowedTypes.includes(file.type)) {
-            return `Недопустимый тип файла. Разрешены: ${allowedTypes.join(', ')}`;
+            return `Недопустимый тип файла. Разрешены: ${allowedTypes.join(", ")}`;
         }
+
         if (file.size > maxSizeBytes) {
             return `Файл слишком большой. Максимальный размер: ${maxSizeMB} МБ.`;
         }
+
         return null;
     };
 
@@ -61,38 +58,48 @@ const FileUploader: React.FC<FileUploaderProps> = ({
             setIsUploading(true);
 
             try {
-                const response = await pdfApi.uploadPDF(file, setUploadProgress);
+                await pdfApi.uploadPDF(file, setUploadProgress);
                 setUploadProgress(100);
-                if (onUploadSuccess) {
-                    onUploadSuccess();
-                }
-                console.log('Файл загружен:', response);
-            } catch (err: any) {
-                const serverError =
-                    err.response?.data?.detail || err.message || 'Ошибка загрузки';
-                setError(serverError);
+                onUploadSuccess?.();
+            } catch (err: unknown) {
+                setError(getErrorMessage(err) || "Ошибка загрузки");
             } finally {
                 setIsUploading(false);
             }
         },
-        [onUploadSuccess, allowedTypes, maxSizeBytes, maxSizeMB]
+        [allowedTypes, maxSizeBytes, maxSizeMB, onUploadSuccess]
     );
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: allowedTypes.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
+        accept,
         maxSize: maxSizeBytes,
         multiple: false,
         disabled: isUploading,
     });
 
+    if (authLoading) {
+        return <div className="uploader-loading">Загрузка данных пользователя...</div>;
+    }
+
+    if (!user) {
+        return (
+            <div className="uploader-not-authorized">
+                Пожалуйста, <a href="/login">войдите в систему</a>, чтобы загружать файлы.
+            </div>
+        );
+    }
+
     return (
         <div className="file-uploader">
             <div
                 {...getRootProps()}
-                className={`upload-area ${isDragActive ? 'drag-over' : ''} ${isUploading ? 'disabled' : ''}`}
+                className={`upload-area ${isDragActive ? "drag-over" : ""} ${
+                    isUploading ? "disabled" : ""
+                }`}
             >
                 <input {...getInputProps()} />
+
                 {isUploading ? (
                     <p>Загрузка... {uploadProgress}%</p>
                 ) : isDragActive ? (
@@ -107,21 +114,21 @@ const FileUploader: React.FC<FileUploaderProps> = ({
             </div>
 
             {isUploading && (
-                <div className="progress-bar" style={{ marginTop: '10px' }}>
+                <div className="progress-bar" style={{ marginTop: "10px" }}>
                     <div
                         style={{
-                            height: '8px',
+                            height: "8px",
                             width: `${uploadProgress}%`,
-                            backgroundColor: '#4caf50',
-                            borderRadius: '4px',
-                            transition: 'width 0.2s',
+                            backgroundColor: "#4caf50",
+                            borderRadius: "4px",
+                            transition: "width 0.2s",
                         }}
                     />
                 </div>
             )}
 
             {error && (
-                <div className="error" style={{ color: 'red', marginTop: '10px' }}>
+                <div className="error" style={{ color: "red", marginTop: "10px" }}>
                     {error}
                 </div>
             )}
