@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "exclude": ["dist", "coverage", "node_modules", "eslint.config.*"],
     "types": ["jest", "node"],
     "esModuleInterop": true,
     "target": "ES2020",
@@ -20,6 +19,11 @@
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true
   },
+  "exclude": [
+    "eslint.config.*",
+    "node_modules",
+    "dist"
+  ],
   "include": [
     "src",
     "tests",
