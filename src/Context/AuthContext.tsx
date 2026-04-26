@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
             await api.post('/api/auth/logout');
         } catch {
+            // intentionally ignored
         }
     };
 
