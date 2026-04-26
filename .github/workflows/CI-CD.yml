@@ -47,13 +47,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push frontend image
+      - name: Build frontend image (no push)
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/myapp-frontend:latest
-            ${{ secrets.DOCKER_USERNAME }}/myapp-frontend:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          file: ./Dockerfile
+          push: false
+          tags: my-frontend-image:ci
