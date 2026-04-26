@@ -206,7 +206,7 @@ export const DashboardApp: React.FC = () => {
                         <div className="cards-header">
                             <div>
                                 <h2>
-                                    🎴 Карточки из "{selectedDeck.name}" ({totalCards})
+                                    🎴 Карточки из &quot;{selectedDeck.name}&quot; ({totalCards})
                                 </h2>
                             </div>
                             <button onClick={handleClearCardsClick} className="clear-cards-btn" disabled={loading}>
@@ -287,15 +287,15 @@ export const DashboardApp: React.FC = () => {
                                 <div className="stat-item">
                                     <span className="stat-label">Всего карточек:</span>
                                     <span id="Total" className="stat-value">
-                    {totalCards}
-                  </span>
+                                        {totalCards}
+                                    </span>
                                 </div>
                                 {selectedDeck && (
                                     <div className="stat-item">
                                         <span className="stat-label">Текущая колода:</span>
                                         <span id="modalTotalDecks" className="stat-value">
-                      {selectedDeck.name}
-                    </span>
+                                            {selectedDeck.name}
+                                        </span>
                                     </div>
                                 )}
                             </div>

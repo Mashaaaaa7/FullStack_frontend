@@ -66,7 +66,7 @@ export default function DictionaryWidget() {
                         result.definitions.map((def, idx) => (
                             <div key={idx} className="definition">
                                 <strong>{def.partOfSpeech}</strong>: {def.definition}
-                                {def.example && <div className="example">Пример: "{def.example}"</div>}
+                                {def.example && <div className="example">Пример: &quot;{def.example}&quot;</div>}
                             </div>
                         ))
                     )}
