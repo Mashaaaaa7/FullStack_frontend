@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "exclude": ["dist", "coverage", "node_modules", "eslint.config.*"],
     "types": ["jest", "node"],
     "esModuleInterop": true,
     "target": "ES2020",
