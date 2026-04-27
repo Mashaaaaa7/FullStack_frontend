@@ -53,4 +53,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/fullstack:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:latest

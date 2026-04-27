@@ -1,8 +1,6 @@
 services:
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/fullstack-frontend:latest
     container_name: frontend
     ports:
       - "3000:80"
