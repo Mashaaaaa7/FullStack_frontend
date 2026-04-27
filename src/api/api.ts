@@ -1,14 +1,13 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import type {
     UploadResponse,
     ActionHistory,
     DictionaryData,
     CurrentUser,
-    Role,
     Card,
 } from "../types";
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = "http://localhost:8000/api";
 
 declare module "axios" {
     export interface InternalAxiosRequestConfig {
@@ -22,6 +21,8 @@ interface ApiErrorResponse {
 
 interface RefreshResponse {
     access_token: string;
+    refresh_token?: string;
+    token_type?: string;
 }
 
 export interface PdfCardsResponse {
@@ -79,11 +80,16 @@ export const getErrorMessage = (error: unknown): string => {
 const api = axios.create({
     baseURL: API_BASE,
     withCredentials: true,
-    headers: { "Content-Type": "application/json" },
+    timeout: 60000,
+    headers: {
+        Accept: "application/json",
+    },
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("access_token");
+
+    config.headers = config.headers ?? {};
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -95,20 +101,23 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError<ApiErrorResponse>) => {
-        const originalRequest = error.config;
+        const originalRequest = error.config as InternalAxiosRequestConfig | undefined;
 
         if (!originalRequest) {
             return Promise.reject(error);
         }
 
-        const isLoginRequest = originalRequest.url?.includes("/auth/login");
-        const isLogoutRequest = originalRequest.url?.includes("/auth/logout");
+        const requestUrl = originalRequest.url ?? "";
+        const isLoginRequest = requestUrl.includes("/auth/login");
+        const isLogoutRequest = requestUrl.includes("/auth/logout");
+        const isRefreshRequest = requestUrl.includes("/auth/refresh");
 
         if (
             error.response?.status === 401 &&
             !originalRequest._retry &&
             !isLoginRequest &&
-            !isLogoutRequest
+            !isLogoutRequest &&
+            !isRefreshRequest
         ) {
             originalRequest._retry = true;
 
@@ -116,17 +125,24 @@ api.interceptors.response.use(
                 const { data } = await axios.post<RefreshResponse>(
                     `${API_BASE}/auth/refresh`,
                     {},
-                    { withCredentials: true }
+                    {
+                        withCredentials: true,
+                        headers: {
+                            Accept: "application/json",
+                        },
+                    }
                 );
 
                 localStorage.setItem("access_token", data.access_token);
+
+                originalRequest.headers = originalRequest.headers ?? {};
                 originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
 
                 return api(originalRequest);
-            } catch {
+            } catch (refreshError) {
                 localStorage.removeItem("access_token");
                 window.location.href = "/login";
-                return Promise.reject(error);
+                return Promise.reject(refreshError);
             }
         }
 
@@ -142,11 +158,11 @@ export const authApi = {
     login: (email: string, password: string) =>
         api.post("/auth/login", { email, password }).then((res) => res.data),
 
+    register: (email: string, password: string) =>
+        api.post("/auth/register", { email, password }).then((res) => res.data),
+
     getMe: (): Promise<CurrentUser> =>
         api.get<CurrentUser>("/profile/me").then((res) => res.data),
-
-    updateUserRole: (userId: number, role: Role) =>
-        api.put(`/admin/users/${userId}/role`, { role }).then((res) => res.data),
 
     logout: () => api.post("/auth/logout").then((res) => res.data),
 
@@ -172,7 +188,9 @@ export const pdfApi = {
 
         return api
             .post<UploadResponse>("/pdf/upload", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
                 onUploadProgress: (progressEvent) => {
                     if (progressEvent.total && onProgress) {
                         const percent = Math.round(
