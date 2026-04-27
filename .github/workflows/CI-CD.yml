@@ -47,10 +47,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build frontend image (no push)
+      - name: Build and push frontend image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          push: false
-          tags: my-frontend-image:ci
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:latest
