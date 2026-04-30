@@ -1,8 +1,8 @@
 import { screen, waitFor } from "@testing-library/react";
-import { describe, it, beforeEach, vi } from "vitest";
 import { DashboardApp } from "../../components/Dashboard/DashboardApp.tsx";
 import { authApi, pdfApi } from "../../api/api";
 import { renderWithRouterAndAuth } from "../test-utils.tsx";
+import { describe, it, beforeEach, vi, expect } from "vitest";
 
 vi.mock("../../api/api", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../../api/api")>();

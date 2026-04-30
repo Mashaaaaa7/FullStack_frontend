@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { vi, describe, it, beforeEach } from "vitest";
+import { describe, it, beforeEach, vi, expect } from "vitest";
 import DictionaryWidget from "../../components/Dashboard/DictionaryWidget.tsx";
 import { dictionaryApi } from "../../api/api";
 

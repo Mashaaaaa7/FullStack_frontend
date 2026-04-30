@@ -1,5 +1,5 @@
 import { screen, waitFor } from "@testing-library/react";
-import { describe, it, beforeEach, vi } from "vitest";
+import { describe, it, beforeEach, vi, expect } from "vitest";
 import { DashboardApp } from "../../components/Dashboard/DashboardApp.tsx";
 import { authApi, pdfApi } from "../../api/api";
 import { renderWithRouterAndAuth } from "../test-utils.tsx";
